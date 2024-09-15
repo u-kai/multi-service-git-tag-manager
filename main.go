@@ -21,7 +21,10 @@ func FromStr(s string) (SemVer, error) {
 	var major, minor, patch int
 	_, err := fmt.Sscanf(s, "v%d.%d.%d", &major, &minor, &patch)
 	if err != nil {
-		return SemVer{}, fmt.Errorf("invalid semver string: %s", s)
+		_, err = fmt.Sscanf(s, "%d.%d.%d", &major, &minor, &patch)
+		if err != nil {
+			return SemVer{}, fmt.Errorf("invalid semver string: %s", s)
+		}
 	}
 	return SemVer{
 		major: major,
