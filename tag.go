@@ -101,6 +101,15 @@ func NewServiceTagWithSemVer(service string, tag SemVer) *ServiceTagWithSemVer {
 	}
 }
 
+func (s *ServiceTagWithSemVer) UpdateMajor() {
+	s.tag = s.tag.MajorUp()
+}
+func (s *ServiceTagWithSemVer) UpdateMinor() {
+	s.tag = s.tag.MinorUp()
+}
+func (s *ServiceTagWithSemVer) UpdatePatch() {
+	s.tag = s.tag.PatchUp()
+}
 func (s *ServiceTagWithSemVer) String() string {
 	return fmt.Sprintf("%s-%s", s.service, s.tag.String())
 }
