@@ -7,6 +7,73 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type CommitId string
+
+const HEAD CommitId = "HEAD"
+
+type SemVer struct {
+	major int
+	minor int
+	patch int
+}
+
+func FromStr(s string) (SemVer, error) {
+	var major, minor, patch int
+	_, err := fmt.Sscanf(s, "v%d.%d.%d", &major, &minor, &patch)
+	if err != nil {
+		return SemVer{}, fmt.Errorf("invalid semver string: %s", s)
+	}
+	return SemVer{
+		major: major,
+		minor: minor,
+		patch: patch,
+	}, nil
+}
+
+func (s SemVer) MajorUp() SemVer {
+	return SemVer{
+		major: s.major + 1,
+		minor: 0,
+		patch: 0,
+	}
+}
+
+func (s SemVer) MinorUp() SemVer {
+	return SemVer{
+		major: s.major,
+		minor: s.minor + 1,
+		patch: 0,
+	}
+}
+
+func (s SemVer) PatchUp() SemVer {
+	return SemVer{
+		major: s.major,
+		minor: s.minor,
+		patch: s.patch + 1,
+	}
+}
+
+func (s *SemVer) String() string {
+	return fmt.Sprintf("v%d.%d.%d", s.major, s.minor, s.patch)
+}
+
+type ServiceTagWithSemVer struct {
+	service string
+	tag     SemVer
+}
+
+func NewServiceTagWithSemVer(service string, tag SemVer) *ServiceTagWithSemVer {
+	return &ServiceTagWithSemVer{
+		service: service,
+		tag:     tag,
+	}
+}
+
+func (s *ServiceTagWithSemVer) String() string {
+	return fmt.Sprintf("%s-%s", s.service, s.tag.String())
+}
+
 func main() {
 	services := []string{}
 	commitId := new(string)
@@ -27,15 +94,20 @@ func main() {
 					*commitId = "HEAD"
 				}
 				for _, service := range services {
-					message := fmt.Sprintf(`"create auto tag:%s-%s"`, service, *tagVersion)
+					tag := *tagVersion
+					semVer, err := FromStr(tag)
+					if err == nil {
+						tag = semVer.String()
+					}
+					serviceTag := NewServiceTagWithSemVer(service, semVer)
 
-					gitTagCmd := exec.Command("git", "tag", "-a", service+"-"+*tagVersion, *commitId, "-m", message)
+					message := fmt.Sprintf(`"create auto tag:%s-%s"`, service, tag)
+
+					gitTagCmd := exec.Command("git", "tag", "-a", serviceTag.String(), *commitId, "-m", message)
 					c := gitTagCmd.String()
 					println(c)
 					output, err := gitTagCmd.CombinedOutput()
 					if err != nil {
-						println("error")
-						println(string(output))
 						println(err.Error())
 					}
 					println(output)
@@ -44,6 +116,7 @@ func main() {
 			}
 		},
 	}
+
 	tagCmd.Flags().StringSliceVarP(&services, "services", "s", []string{}, "List of services")
 	tagCmd.Flags().StringVarP(tagVersion, "version", "v", "", "Tag version")
 	commitId = tagCmd.Flags().StringP("commit-id", "c", "", "Commit ID")
