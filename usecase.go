@@ -35,9 +35,6 @@ func VersionUpAllServiceTags(
 	}
 
 	updates := versionUpService(tags)
-	if err != nil {
-		return err
-	}
 
 	err = registerService.Register(commitId, updates)
 	if err != nil {
