@@ -11,11 +11,35 @@ type TagList interface {
 type VersionUpServiceTag func(*[]GitTag) *[]*ServiceTagWithSemVer
 
 type DestroyServiceTags interface {
-	Destroy([]*ServiceTagWithSemVer) error
+	Destroy(*[]*ServiceTagWithSemVer) error
 }
 
 type CommitGetter interface {
 	GetTags(*CommitId) ([]GitTag, error)
+}
+
+type CommitPusher interface {
+	Push(*RemoteAddr, *[]*ServiceTagWithSemVer) error
+}
+
+func PushAll(
+	commitGetter CommitGetter,
+	pusher CommitPusher,
+	remote *RemoteAddr,
+	commitId *CommitId,
+) error {
+	tags, err := commitGetter.GetTags(commitId)
+	if err != nil {
+		return err
+	}
+
+	serviceTags := FilterServiceTags(&tags)
+	err = pusher.Push(remote, serviceTags)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func ResetServiceTags(destroyer DestroyServiceTags, commitGetter CommitGetter, commitId *CommitId) error {
@@ -23,15 +47,7 @@ func ResetServiceTags(destroyer DestroyServiceTags, commitGetter CommitGetter, c
 	if err != nil {
 		return err
 	}
-	targets := []*ServiceTagWithSemVer{}
-	for _, tag := range tags {
-		serviceTag, err := tag.ToServiceTag()
-		if err != nil {
-			continue
-		}
-		targets = append(targets, serviceTag)
-	}
-
+	targets := FilterServiceTags(&tags)
 	err = destroyer.Destroy(targets)
 	if err != nil {
 		return err

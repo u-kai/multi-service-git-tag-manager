@@ -139,8 +139,8 @@ func logDestroyEvent(event DestroyEvent) error {
 	return nil
 }
 
-func (s *ServiceTagsDestroyer) Destroy(tags []*ServiceTagWithSemVer) error {
-	for _, tag := range tags {
+func (s *ServiceTagsDestroyer) Destroy(tags *[]*ServiceTagWithSemVer) error {
+	for _, tag := range *tags {
 		_, err := gitTagDelete(tag.String(), s.force)
 		if err != nil {
 			return err

@@ -23,10 +23,10 @@ func (s *StubTagList) List() (*[]msgtm.GitTag, error) {
 }
 
 type MockDestroyer struct {
-	Destroyed []*msgtm.ServiceTagWithSemVer
+	Destroyed *[]*msgtm.ServiceTagWithSemVer
 }
 
-func (m *MockDestroyer) Destroy(tag []*msgtm.ServiceTagWithSemVer) error {
+func (m *MockDestroyer) Destroy(tag *[]*msgtm.ServiceTagWithSemVer) error {
 	m.Destroyed = tag
 	return nil
 }
@@ -64,7 +64,7 @@ func TestResetTags(t *testing.T) {
 		msgtm.NewServiceTagWithSemVer("service-b", msgtm.NewSemVer(1, 2, 3)),
 	}
 	if !cmpArrayContent(
-		mockDestroyer.Destroyed,
+		*mockDestroyer.Destroyed,
 		expected,
 	) {
 		t.Errorf("ResetTags() = %v, want %v", mockDestroyer.Destroyed, []msgtm.ServiceTagWithSemVer{})

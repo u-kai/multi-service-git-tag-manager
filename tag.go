@@ -41,6 +41,23 @@ func (g GitTag) ToServiceTag() (*ServiceTagWithSemVer, error) {
 	return NewServiceTagWithSemVer(service, version), nil
 }
 
+func FilterServiceTags(tags *[]GitTag) *[]*ServiceTagWithSemVer {
+	serviceTags := []*ServiceTagWithSemVer{}
+	if tags == nil || len(*tags) == 0 {
+		return &serviceTags
+	}
+
+	for _, tag := range *tags {
+		serviceTag, err := tag.ToServiceTag()
+		if err != nil {
+			continue
+		}
+		serviceTags = append(serviceTags, serviceTag)
+	}
+
+	return &serviceTags
+}
+
 type ServiceTagWithSemVer struct {
 	service string
 	version SemVer

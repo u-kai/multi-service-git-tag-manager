@@ -7,3 +7,7 @@ func (c *CommitId) String() string {
 }
 
 const HEAD CommitId = "HEAD"
+
+type RemoteAddr string
+
+const Origin RemoteAddr = "origin"
