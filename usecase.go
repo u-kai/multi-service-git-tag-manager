@@ -9,11 +9,12 @@ func MinorUpAll(tagList TagList) (*[]*ServiceTagWithSemVer, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(*tags) == 0 {
-		return nil, nil
-	}
 
 	serviceTags := []*ServiceTagWithSemVer{}
+	if tags == nil || len(*tags) == 0 {
+		return &serviceTags, nil
+	}
+
 	for _, tag := range *tags {
 		serviceTag, err := tag.ToServiceTag()
 		if err != nil {
