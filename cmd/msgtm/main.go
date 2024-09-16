@@ -21,11 +21,6 @@ func main() {
 		Short: "msgtm is a tool for multi service git tag manager",
 	}
 
-	tagCmd := &cobra.Command{
-		Use:   "tag",
-		Short: "tag is a tool for multi service git tag manager",
-	}
-
 	// tag add
 	tagAddCmd := &cobra.Command{
 		Use:   "add",
@@ -35,28 +30,27 @@ func main() {
 	tagAddCmd.Flags().StringP("commit-id", "c", "", "Commit ID")
 	tagAddCmd.Flags().StringSliceP("services", "s", []string{}, "Add of services")
 	tagAddCmd.Flags().StringP("from-config-file", "f", "", "Add of services from config file")
-	tagCmd.AddCommand(tagAddCmd)
 
+	// tag version-up
 	tagVersionUpCmd := &cobra.Command{
-		Use:   "up",
+		Use:   "upgrade",
 		Short: "version-up is a tool for multi service git tag manager",
 		Run:   tagVersionUpCmd(),
 	}
-
 	tagVersionUpCmd.Flags().BoolP("minor", "m", false, "Minor version up")
 	tagVersionUpCmd.Flags().BoolP("major", "M", false, "Major version up")
 	tagVersionUpCmd.Flags().BoolP("all", "a", false, "Tag all services")
 	tagVersionUpCmd.Flags().StringP("commit-id", "c", "", "Commit ID")
 	tagVersionUpCmd.Flags().StringSliceP("services", "s", []string{}, "List of services")
-	tagCmd.AddCommand(tagVersionUpCmd)
 
+	// tag reset
 	tagResetCmd := &cobra.Command{
 		Use:   "reset",
 		Short: "reset is a tool for multi service git tag manager",
 		Run:   tagResetCmd(),
 	}
-	tagCmd.AddCommand(tagResetCmd)
 
+	// tags push
 	tagsPushCmd := &cobra.Command{
 		Use:   "push",
 		Short: "push is a tool for multi service git tag manager",
@@ -64,9 +58,12 @@ func main() {
 	}
 	tagsPushCmd.Flags().StringP("commit-id", "c", "", "Commit ID")
 	tagsPushCmd.Flags().StringP("remote", "r", "", "Remote")
-	tagCmd.AddCommand(tagsPushCmd)
 
-	rootCmd.AddCommand(tagCmd)
+	rootCmd.AddCommand(tagAddCmd)
+	rootCmd.AddCommand(tagVersionUpCmd)
+	rootCmd.AddCommand(tagResetCmd)
+	rootCmd.AddCommand(tagsPushCmd)
+
 	if err := rootCmd.Execute(); err != nil {
 		panic(err)
 	}
