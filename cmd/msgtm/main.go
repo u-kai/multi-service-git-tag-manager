@@ -57,6 +57,15 @@ func main() {
 	}
 	tagCmd.AddCommand(tagResetCmd)
 
+	tagsPushCmd := &cobra.Command{
+		Use:   "push",
+		Short: "push is a tool for multi service git tag manager",
+		Run:   tagsPushCmd(),
+	}
+	tagsPushCmd.Flags().StringP("commit-id", "c", "", "Commit ID")
+	tagsPushCmd.Flags().StringP("remote", "r", "", "Remote")
+	tagCmd.AddCommand(tagsPushCmd)
+
 	rootCmd.AddCommand(tagCmd)
 	if err := rootCmd.Execute(); err != nil {
 		panic(err)
@@ -64,6 +73,36 @@ func main() {
 }
 
 type CobraCmdRunner func(cmd *cobra.Command, args []string)
+
+func tagsPushCmd() CobraCmdRunner {
+	return func(cmd *cobra.Command, args []string) {
+		commitIdStr, _ := cmd.Flags().GetString("commit-id")
+		remoteStr, _ := cmd.Flags().GetString("remote")
+
+		commitId := msgtm.HEAD
+		if commitIdStr != "" {
+			commitId = msgtm.CommitId(commitIdStr)
+		}
+		remote := msgtm.Origin
+		if remoteStr != "" {
+			remote = msgtm.RemoteAddr(remoteStr)
+		}
+
+		getter := msgtm.DefaultCommitTagGetter()
+		pusher := msgtm.DefaultGitTagPusher()
+
+		err := msgtm.PushAll(
+			getter,
+			pusher,
+			&remote,
+			&commitId,
+		)
+		if err != nil {
+			fmt.Printf("Failed to push service tags: %s\n", err.Error())
+			return
+		}
+	}
+}
 
 func tagResetCmd() CobraCmdRunner {
 	return func(cmd *cobra.Command, args []string) {

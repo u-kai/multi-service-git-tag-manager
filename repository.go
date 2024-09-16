@@ -192,6 +192,40 @@ func gitTagDelete(tag string, force bool) (string, error) {
 	return string(output), nil
 }
 
+type GitTagPusher struct {
+	handler EventHandler[PushEvent]
+}
+type PushEvent struct {
+	RemoteAddr *RemoteAddr
+	Tags       []string
+}
+
+func DefaultGitTagPusher() *GitTagPusher {
+	return &GitTagPusher{
+		handler: logPushEvent,
+	}
+}
+func logPushEvent(event PushEvent) error {
+	fmt.Printf("Push tags %s to %s\n", event.Tags, event.RemoteAddr.String())
+	return nil
+}
+
+func (g *GitTagPusher) Push(remote *RemoteAddr, tags *[]*ServiceTagWithSemVer) error {
+	tagStrs := []string{}
+	for _, tag := range *tags {
+		tagStrs = append(tagStrs, tag.String())
+	}
+	_, err := gitPushTags(remote, tagStrs...)
+	if err != nil {
+		return err
+	}
+	g.handler(PushEvent{
+		RemoteAddr: remote,
+		Tags:       tagStrs,
+	})
+	return nil
+}
+
 type CommitTagGetter struct {
 	handler EventHandler[GetTagEvent]
 }
@@ -242,6 +276,18 @@ func (c *CommitTagGetter) GetTags(commitId *CommitId) ([]GitTag, error) {
 
 func gitShowCommit(commitId string) (string, error) {
 	cmd := exec.Command("git", "show", commitId, "--decorate")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+
+	return string(output), nil
+}
+
+func gitPushTags(remote *RemoteAddr, tags ...string) (string, error) {
+	args := []string{"push", remote.String()}
+	args = append(args, tags...)
+	cmd := exec.Command("git", args...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", err
