@@ -1,0 +1,5 @@
+services:
+  - name: my-service
+  - name: my-service-2
+  - name: my-service-3
+  - name: my-service-4

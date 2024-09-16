@@ -3,9 +3,12 @@ package main
 import (
 	"fmt"
 	"msgtm"
+	"os"
+
 	//	"os/exec"
 
 	"github.com/spf13/cobra"
+	"gopkg.in/yaml.v2"
 )
 
 type CommitId string
@@ -30,7 +33,8 @@ func main() {
 		Run:   tagAddCmd(),
 	}
 	tagAddCmd.Flags().StringP("commit-id", "c", "", "Commit ID")
-	tagAddCmd.Flags().StringSliceP("services", "s", []string{}, "List of services")
+	tagAddCmd.Flags().StringSliceP("services", "s", []string{}, "Add of services")
+	tagAddCmd.Flags().StringP("from-config-file", "f", "", "Add of services from config file")
 	tagCmd.AddCommand(tagAddCmd)
 
 	tagVersionUpCmd := &cobra.Command{
@@ -137,6 +141,24 @@ func tagAddCmd() CobraCmdRunner {
 		}
 		commitIdStr, _ := cmd.Flags().GetString("commit-id")
 		services, _ := cmd.Flags().GetStringSlice("services")
+		fileName, _ := cmd.Flags().GetString("from-config-file")
+
+		if len(fileName) > 0 {
+			content, err := os.ReadFile(fileName)
+			if err != nil {
+				fmt.Printf("Failed to read file: %s\n", err.Error())
+				return
+			}
+			config := ServiceConfig{}
+			err = yaml.Unmarshal(content, &config)
+			if err != nil {
+				fmt.Printf("Failed to unmarshal yaml: %s\n", err.Error())
+				return
+			}
+			for _, service := range config.Services {
+				services = append(services, service.Name)
+			}
+		}
 
 		commitId := msgtm.HEAD
 		if commitIdStr != "" {
@@ -155,4 +177,12 @@ func tagAddCmd() CobraCmdRunner {
 			return
 		}
 	}
+}
+
+type ServiceConfig struct {
+	Services []Service `yaml:"services"`
+}
+
+type Service struct {
+	Name string `yaml:"name"`
 }

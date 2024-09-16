@@ -225,6 +225,9 @@ func (c *CommitTagGetter) GetTags(commitId *CommitId) ([]GitTag, error) {
 	tagsStr = tagsStr[:len(tagsStr)-1]
 
 	for _, tagStr := range strings.Split(tagsStr, ", ") {
+		if !strings.HasPrefix(tagStr, "tag: ") {
+			continue
+		}
 		tag := GitTag(
 			strings.Split(tagStr, "tag: ")[1],
 		)
