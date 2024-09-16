@@ -133,6 +133,10 @@ func tagVersionUpCmd() CobraCmdRunner {
 
 func tagAddCmd() CobraCmdRunner {
 	return func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			fmt.Println("Error: tag add command must version args.")
+			return
+		}
 		version := args[0]
 		semVer, err := msgtm.FromStr(version)
 		if err != nil {
