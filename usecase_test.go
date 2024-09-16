@@ -58,7 +58,7 @@ func TestMinorVersionUpAll(t *testing.T) {
 	h := msgtm.HEAD
 	err := msgtm.VersionUpAllServiceTags(stub, mockGit, msgtm.MinorUpAll, &h)
 	if err != nil {
-		t.Errorf("MajorUpAllServiceTags() error = %v, want nil", err)
+		t.Errorf("MinorUpAllServiceTags() error = %v, want nil", err)
 	}
 	tag1 := msgtm.GitTag("service-a-v1.3.0")
 	tag2 := msgtm.GitTag("service-b-v1.4.0")
@@ -71,7 +71,7 @@ func TestMinorVersionUpAll(t *testing.T) {
 		expected,
 	) {
 		t.Errorf(
-			"MajorUpAllServiceTags() = %v, want %v", mockGit.AddedTags, expected,
+			"MinorUpAllServiceTags() = %v, want %v", mockGit.AddedTags, expected,
 		)
 	}
 }
@@ -89,7 +89,7 @@ func TestPatchVersionUpAll(t *testing.T) {
 	h := msgtm.HEAD
 	err := msgtm.VersionUpAllServiceTags(stub, mockGit, msgtm.PatchUpAll, &h)
 	if err != nil {
-		t.Errorf("MajorUpAllServiceTags() error = %v, want nil", err)
+		t.Errorf("PatchUpAllServiceTags() error = %v, want nil", err)
 	}
 	tag1 := msgtm.GitTag("service-a-v1.2.4")
 	tag2 := msgtm.GitTag("service-b-v1.3.4")
@@ -102,7 +102,7 @@ func TestPatchVersionUpAll(t *testing.T) {
 		expected,
 	) {
 		t.Errorf(
-			"MajorUpAllServiceTags() = %v, want %v", mockGit.AddedTags, expected,
+			"PatchUpAllServiceTags() = %v, want %v", mockGit.AddedTags, expected,
 		)
 	}
 }
