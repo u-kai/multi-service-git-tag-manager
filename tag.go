@@ -66,6 +66,16 @@ func (s *ServiceTagWithSemVer) String() string {
 	return fmt.Sprintf("%s-%s", s.service, s.version.String())
 }
 
+func (s *ServiceTagWithSemVer) GreaterThan(other *ServiceTagWithSemVer) bool {
+	return s.version.GreaterThan(other.version)
+}
+func (s *ServiceTagWithSemVer) LessThan(other *ServiceTagWithSemVer) bool {
+	return s.version.LessThan(other.version)
+}
+func (s *ServiceTagWithSemVer) Equal(other *ServiceTagWithSemVer) bool {
+	return s.version.Equal(other.version)
+}
+
 type SemVer struct {
 	major int
 	minor int
@@ -90,6 +100,36 @@ func NewSemVer(major, minor, patch int) SemVer {
 		minor: minor,
 		patch: patch,
 	}
+}
+
+func (s SemVer) GreaterThan(other SemVer) bool {
+	if s.major > other.major {
+		return true
+	}
+	if s.major == other.major && s.minor > other.minor {
+		return true
+	}
+	if s.major == other.major && s.minor == other.minor && s.patch > other.patch {
+		return true
+	}
+	return false
+}
+
+func (s SemVer) LessThan(other SemVer) bool {
+	if s.major < other.major {
+		return true
+	}
+	if s.major == other.major && s.minor < other.minor {
+		return true
+	}
+	if s.major == other.major && s.minor == other.minor && s.patch < other.patch {
+		return true
+	}
+	return false
+}
+
+func (s SemVer) Equal(other SemVer) bool {
+	return s.major == other.major && s.minor == other.minor && s.patch == other.patch
 }
 
 func (s SemVer) MajorUp() SemVer {

@@ -51,7 +51,84 @@ func TestServiceTagUpdate(t *testing.T) {
 	}
 
 }
-func TestFromStrToServiceTag(t *testing.T) {
+
+func TestVersionCompare(t *testing.T) {
+	const (
+		Greater = iota
+		Less
+		Equal
+	)
+	cmpTestCases := []struct {
+		name      string
+		a         msgtm.SemVer
+		b         msgtm.SemVer
+		aXXXThanB int
+	}{
+		{
+			name:      "major a > b then a greater than b",
+			a:         msgtm.NewSemVer(1, 2, 3),
+			b:         msgtm.NewSemVer(0, 9, 9),
+			aXXXThanB: Greater,
+		},
+		{
+			name:      "major a = b and minor a > b then a greater than b",
+			a:         msgtm.NewSemVer(2, 3, 1),
+			b:         msgtm.NewSemVer(2, 2, 3),
+			aXXXThanB: Greater,
+		},
+		{
+			name:      "major a = b and minor a = b and patch a > b then a greater than b",
+			a:         msgtm.NewSemVer(1, 2, 4),
+			b:         msgtm.NewSemVer(1, 2, 3),
+			aXXXThanB: Greater,
+		},
+		{
+			name:      "major a < b then a less than b",
+			a:         msgtm.NewSemVer(1, 2, 3),
+			b:         msgtm.NewSemVer(2, 0, 0),
+			aXXXThanB: Less,
+		},
+		{
+			name:      "major a = b and minor a < b then a less than b",
+			a:         msgtm.NewSemVer(2, 3, 1),
+			b:         msgtm.NewSemVer(2, 4, 3),
+			aXXXThanB: Less,
+		},
+		{
+			name:      "major a = b and minor a = b and patch a < b then a less than b",
+			a:         msgtm.NewSemVer(1, 2, 3),
+			b:         msgtm.NewSemVer(1, 2, 4),
+			aXXXThanB: Less,
+		},
+		{
+			name:      "a = b",
+			a:         msgtm.NewSemVer(1, 2, 3),
+			b:         msgtm.NewSemVer(1, 2, 3),
+			aXXXThanB: Equal,
+		},
+	}
+	for _, tt := range cmpTestCases {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.aXXXThanB == Greater {
+				if !tt.a.GreaterThan(tt.b) {
+					t.Errorf("GreaterThan() = %v, want %v", false, true)
+				}
+			}
+			if tt.aXXXThanB == Less {
+				if !tt.a.LessThan(tt.b) {
+					t.Errorf("LessThan() = %v, want %v", false, true)
+				}
+			}
+			if tt.aXXXThanB == Equal {
+				if !tt.a.Equal(tt.b) {
+					t.Errorf("Equal() = %v, want %v", false, true)
+				}
+			}
+		})
+	}
+}
+
+func TestGitTagToServiceTag(t *testing.T) {
 	tests := []struct {
 		name   string
 		gitTag msgtm.GitTag
