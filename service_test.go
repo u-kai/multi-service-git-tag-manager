@@ -36,7 +36,7 @@ func TestMajorUpAll(t *testing.T) {
 				msgtm.GitTag("service-a-v1.2.3"),
 				msgtm.GitTag("service-b-v2.3.0"),
 				// prev service-b tag
-				msgtm.GitTag("service-b-v2.3.0"),
+				msgtm.GitTag("service-b-v2.2.0"),
 			},
 			want: &[]*msgtm.ServiceTagWithSemVer{
 				msgtm.NewServiceTagWithSemVer("service-a", msgtm.NewSemVer(2, 0, 0)),
@@ -102,6 +102,19 @@ func TestMinorUpAll(t *testing.T) {
 			},
 		},
 		{
+			name: "only service tags and duplicate prev service tags",
+			allTags: &[]msgtm.GitTag{
+				msgtm.GitTag("service-a-v1.2.3"),
+				msgtm.GitTag("service-b-v2.3.1"),
+				// prev service-b tag
+				msgtm.GitTag("service-b-v2.3.0"),
+			},
+			want: &[]*msgtm.ServiceTagWithSemVer{
+				msgtm.NewServiceTagWithSemVer("service-a", msgtm.NewSemVer(1, 3, 0)),
+				msgtm.NewServiceTagWithSemVer("service-b", msgtm.NewSemVer(2, 4, 0)),
+			},
+		},
+		{
 			name: "normal tag and service tags",
 			allTags: &[]msgtm.GitTag{
 				msgtm.GitTag("service-a-v1.2.3"),
@@ -157,6 +170,19 @@ func TestPatchUpAll(t *testing.T) {
 			want: &[]*msgtm.ServiceTagWithSemVer{
 				msgtm.NewServiceTagWithSemVer("service-a", msgtm.NewSemVer(1, 2, 4)),
 				msgtm.NewServiceTagWithSemVer("service-b", msgtm.NewSemVer(2, 3, 1)),
+			},
+		},
+		{
+			name: "only service tags and duplicate prev service tags",
+			allTags: &[]msgtm.GitTag{
+				msgtm.GitTag("service-a-v1.2.3"),
+				msgtm.GitTag("service-b-v2.3.1"),
+				// prev service-b tag
+				msgtm.GitTag("service-b-v2.3.0"),
+			},
+			want: &[]*msgtm.ServiceTagWithSemVer{
+				msgtm.NewServiceTagWithSemVer("service-a", msgtm.NewSemVer(1, 2, 4)),
+				msgtm.NewServiceTagWithSemVer("service-b", msgtm.NewSemVer(2, 3, 2)),
 			},
 		},
 		{
