@@ -46,6 +46,13 @@ func main() {
 	tagVersionUpCmd.Flags().StringSliceP("services", "s", []string{}, "List of services")
 	tagCmd.AddCommand(tagVersionUpCmd)
 
+	tagResetCmd := &cobra.Command{
+		Use:   "reset",
+		Short: "reset is a tool for multi service git tag manager",
+		Run:   tagResetCmd(),
+	}
+	tagCmd.AddCommand(tagResetCmd)
+
 	rootCmd.AddCommand(tagCmd)
 	if err := rootCmd.Execute(); err != nil {
 		panic(err)
@@ -53,6 +60,28 @@ func main() {
 }
 
 type CobraCmdRunner func(cmd *cobra.Command, args []string)
+
+func tagResetCmd() CobraCmdRunner {
+	return func(cmd *cobra.Command, args []string) {
+		commitId := msgtm.HEAD
+		if len(args) > 0 {
+			commitId = msgtm.CommitId(args[0])
+		}
+
+		getter := msgtm.DefaultCommitTagGetter()
+		destroyer := msgtm.ForceDestroyer()
+
+		err := msgtm.ResetServiceTags(
+			destroyer,
+			getter,
+			&commitId,
+		)
+		if err != nil {
+			fmt.Printf("Failed to reset service tags: %s\n", err.Error())
+			return
+		}
+	}
+}
 
 func tagVersionUpCmd() CobraCmdRunner {
 	return func(cmd *cobra.Command, args []string) {
