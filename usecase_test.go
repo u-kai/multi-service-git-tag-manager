@@ -14,6 +14,14 @@ func (m *MockRegister) Register(_ *msgtm.CommitId, tags *[]*msgtm.ServiceTagWith
 	return nil
 }
 
+type StubTagList struct {
+	tags *[]msgtm.GitTag
+}
+
+func (s *StubTagList) List() (*[]msgtm.GitTag, error) {
+	return s.tags, nil
+}
+
 func TestMajorVersionUpAll(t *testing.T) {
 	stub := &StubTagList{
 		tags: &[]msgtm.GitTag{

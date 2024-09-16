@@ -6,14 +6,6 @@ import (
 	"testing"
 )
 
-type StubTagList struct {
-	tags *[]msgtm.GitTag
-}
-
-func (s *StubTagList) List() (*[]msgtm.GitTag, error) {
-	return s.tags, nil
-}
-
 func TestMajorUpAll(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -71,11 +63,7 @@ func TestMajorUpAll(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stubTagList := &StubTagList{tags: tt.allTags}
-			got, err := msgtm.MajorUpAll(stubTagList)
-			if err != nil {
-				t.Errorf("MajorUpAll() error = %v", err)
-			}
+			got := msgtm.MajorUpAll(tt.allTags)
 			if !cmpArrayContent(*got, *tt.want) {
 				t.Errorf("MajorUpAll() = %v, want %v", got, tt.want)
 			}
@@ -143,11 +131,7 @@ func TestMinorUpAll(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stubTagList := &StubTagList{tags: tt.allTags}
-			got, err := msgtm.MinorUpAll(stubTagList)
-			if err != nil {
-				t.Errorf("MinorUpAll() error = %v", err)
-			}
+			got := msgtm.MinorUpAll(tt.allTags)
 			if !cmpArrayContent(*got, *tt.want) {
 				t.Errorf("MinorUpAll() = %v, want %v", got, tt.want)
 			}
@@ -214,11 +198,7 @@ func TestPatchUpAll(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			stubTagList := &StubTagList{tags: tt.allTags}
-			got, err := msgtm.PatchUpAll(stubTagList)
-			if err != nil {
-				t.Errorf("PatchUpAll() error = %v", err)
-			}
+			got := msgtm.PatchUpAll(tt.allTags)
 			if !cmpArrayContent(*got, *tt.want) {
 				t.Errorf("PatchUpAll() = %v, want %v", got, tt.want)
 			}

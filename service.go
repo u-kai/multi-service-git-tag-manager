@@ -1,43 +1,30 @@
 package msgtm
 
-type RegisterServiceTags interface {
-	Register(*CommitId, *[]*ServiceTagWithSemVer) error
-}
-
-type TagList interface {
-	List() (*[]GitTag, error)
-}
-
-func MajorUpAll(tagList TagList) (*[]*ServiceTagWithSemVer, error) {
+func MajorUpAll(tags *[]GitTag) *[]*ServiceTagWithSemVer {
 	return versionUpAll(func(tag *ServiceTagWithSemVer) {
 		tag.UpdateMajor()
-	})(tagList)
+	})(tags)
 }
 
-func MinorUpAll(tagList TagList) (*[]*ServiceTagWithSemVer, error) {
+func MinorUpAll(tags *[]GitTag) *[]*ServiceTagWithSemVer {
 	return versionUpAll(func(tag *ServiceTagWithSemVer) {
 		tag.UpdateMinor()
-	})(tagList)
+	})(tags)
 }
 
-func PatchUpAll(tagList TagList) (*[]*ServiceTagWithSemVer, error) {
+func PatchUpAll(tags *[]GitTag) *[]*ServiceTagWithSemVer {
 	return versionUpAll(func(tag *ServiceTagWithSemVer) {
 		tag.UpdatePatch()
-	})(tagList)
+	})(tags)
 }
 
 type versionUpFunc func(*ServiceTagWithSemVer)
 
-func versionUpAll(f versionUpFunc) VersionUpService {
-	return func(tagList TagList) (*[]*ServiceTagWithSemVer, error) {
-		tags, err := tagList.List()
-		if err != nil {
-			return nil, err
-		}
-
+func versionUpAll(f versionUpFunc) VersionUpServiceTag {
+	return func(tags *[]GitTag) *[]*ServiceTagWithSemVer {
 		serviceTags := []*ServiceTagWithSemVer{}
 		if tags == nil || len(*tags) == 0 {
-			return &serviceTags, nil
+			return &serviceTags
 		}
 
 		tmpAlreadyUpdatedServiceTags := map[string]*ServiceTagWithSemVer{}
@@ -64,6 +51,6 @@ func versionUpAll(f versionUpFunc) VersionUpService {
 			serviceTags = append(serviceTags, serviceTag)
 		}
 
-		return &serviceTags, nil
+		return &serviceTags
 	}
 }
