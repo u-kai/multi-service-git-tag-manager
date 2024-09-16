@@ -1,5 +1,28 @@
 package msgtm
 
+type RegisterServiceTags interface {
+	Register(*CommitId, *[]*ServiceTagWithSemVer) error
+}
+
+type TagList interface {
+	List() (*[]GitTag, error)
+}
+
+type VersionUpServiceTag func(*[]GitTag) *[]*ServiceTagWithSemVer
+
+func CreateServiceTags(
+	registerService RegisterServiceTags,
+	commitId *CommitId,
+	serviceNames []string,
+	version SemVer,
+) error {
+	serviceTags := []*ServiceTagWithSemVer{}
+	for _, serviceName := range serviceNames {
+		serviceTags = append(serviceTags, NewServiceTagWithSemVer(serviceName, version))
+	}
+	return registerService.Register(commitId, &serviceTags)
+}
+
 func VersionUpAllServiceTags(
 	list TagList,
 	registerService RegisterServiceTags,
@@ -23,13 +46,3 @@ func VersionUpAllServiceTags(
 
 	return nil
 }
-
-type RegisterServiceTags interface {
-	Register(*CommitId, *[]*ServiceTagWithSemVer) error
-}
-
-type TagList interface {
-	List() (*[]GitTag, error)
-}
-
-type VersionUpServiceTag func(*[]GitTag) *[]*ServiceTagWithSemVer

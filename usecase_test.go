@@ -22,6 +22,29 @@ func (s *StubTagList) List() (*[]msgtm.GitTag, error) {
 	return s.tags, nil
 }
 
+func TestCreateServiceTags(t *testing.T) {
+	services := []string{"service-a", "service-b"}
+	version := msgtm.NewSemVer(0, 0, 1)
+	commitId := msgtm.HEAD
+	mockRegister := &MockRegister{}
+	err := msgtm.CreateServiceTags(mockRegister, &commitId, services, version)
+	if err != nil {
+		t.Errorf("CreateServiceTags() error = %v, want nil", err)
+	}
+	expected := []*msgtm.ServiceTagWithSemVer{
+		msgtm.NewServiceTagWithSemVer("service-a", msgtm.NewSemVer(0, 0, 1)),
+		msgtm.NewServiceTagWithSemVer("service-b", msgtm.NewSemVer(0, 0, 1)),
+	}
+	if !cmpArrayContent(
+		*mockRegister.AddedTags,
+		expected,
+	) {
+		t.Errorf(
+			"CreateServiceTags() = %v, want %v", mockRegister.AddedTags, expected,
+		)
+	}
+}
+
 func TestMajorVersionUpAll(t *testing.T) {
 	stub := &StubTagList{
 		tags: &[]msgtm.GitTag{
