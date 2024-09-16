@@ -53,31 +53,31 @@ func TestServiceTagUpdate(t *testing.T) {
 }
 func TestFromStrToServiceTag(t *testing.T) {
 	tests := []struct {
-		name  string
-		str   string
-		want  msgtm.ServiceTagWithSemVer
-		isErr bool
+		name   string
+		gitTag msgtm.GitTag
+		want   msgtm.ServiceTagWithSemVer
+		isErr  bool
 	}{
 
 		{
-			name: "valid semver string",
-			str:  "service-a-v1.2.3",
-			want: *msgtm.NewServiceTagWithSemVer("service-a", msgtm.NewSemVer(1, 2, 3)),
+			name:   "valid semver string",
+			gitTag: msgtm.GitTag("service-a-v1.2.3"),
+			want:   *msgtm.NewServiceTagWithSemVer("service-a", msgtm.NewSemVer(1, 2, 3)),
 		},
 		{
-			name: "valid semver string without v",
-			str:  "service-a-1.2.3",
-			want: *msgtm.NewServiceTagWithSemVer("service-a", msgtm.NewSemVer(1, 2, 3)),
+			name:   "valid semver string without v",
+			gitTag: msgtm.GitTag("service-a-1.2.3"),
+			want:   *msgtm.NewServiceTagWithSemVer("service-a", msgtm.NewSemVer(1, 2, 3)),
 		},
 		{
-			name:  "invalid semver string",
-			str:   "service-a-v1.2",
-			isErr: true,
+			name:   "invalid semver string",
+			gitTag: msgtm.GitTag("service-a-v1.2"),
+			isErr:  true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := msgtm.FromStrToServiceTag(tt.str)
+			got, err := tt.gitTag.ToServiceTag()
 			if (err != nil) != tt.isErr {
 				t.Errorf("FromStrToServiceTag() error = %v, wantErr %v", err, tt.isErr)
 				return
