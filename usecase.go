@@ -4,6 +4,12 @@ type TagList interface {
 	List() (*[]GitTag, error)
 }
 
+func MajorUpAll(tagList TagList) (*[]*ServiceTagWithSemVer, error) {
+	return versionUpAll(func(tag *ServiceTagWithSemVer) {
+		tag.UpdateMajor()
+	})(tagList)
+}
+
 func MinorUpAll(tagList TagList) (*[]*ServiceTagWithSemVer, error) {
 	return versionUpAll(func(tag *ServiceTagWithSemVer) {
 		tag.UpdateMinor()
