@@ -5,12 +5,12 @@ import (
 	"testing"
 )
 
-type MockGit struct {
-	AddedTags []*msgtm.GitTag
+type MockRegister struct {
+	AddedTags *[]*msgtm.ServiceTagWithSemVer
 }
 
-func (m *MockGit) AddTag(tag *msgtm.GitTag, commitId *msgtm.CommitId) error {
-	m.AddedTags = append(m.AddedTags, tag)
+func (m *MockRegister) Register(_ *msgtm.CommitId, tags *[]*msgtm.ServiceTagWithSemVer) error {
+	m.AddedTags = tags
 	return nil
 }
 
@@ -23,24 +23,22 @@ func TestMajorVersionUpAll(t *testing.T) {
 			msgtm.GitTag("service-a-v1.2.2"),
 		},
 	}
-	mockGit := &MockGit{}
+	mockRegister := &MockRegister{}
 	h := msgtm.HEAD
-	err := msgtm.VersionUpAllServiceTags(stub, mockGit, msgtm.MajorUpAll, &h)
+	err := msgtm.VersionUpAllServiceTags(stub, mockRegister, msgtm.MajorUpAll, &h)
 	if err != nil {
 		t.Errorf("MajorUpAllServiceTags() error = %v, want nil", err)
 	}
-	tag1 := msgtm.GitTag("service-a-v2.0.0")
-	tag2 := msgtm.GitTag("service-b-v2.0.0")
-	expected := []*msgtm.GitTag{
-		&tag1,
-		&tag2,
+	expected := []*msgtm.ServiceTagWithSemVer{
+		msgtm.NewServiceTagWithSemVer("service-a", msgtm.NewSemVer(2, 0, 0)),
+		msgtm.NewServiceTagWithSemVer("service-b", msgtm.NewSemVer(2, 0, 0)),
 	}
 	if !cmpArrayContent(
-		mockGit.AddedTags,
+		*mockRegister.AddedTags,
 		expected,
 	) {
 		t.Errorf(
-			"MajorUpAllServiceTags() = %v, want %v", mockGit.AddedTags, expected,
+			"MajorUpAllServiceTags() = %v, want %v", mockRegister.AddedTags, expected,
 		)
 	}
 }
@@ -54,24 +52,22 @@ func TestMinorVersionUpAll(t *testing.T) {
 			msgtm.GitTag("service-a-v1.2.2"),
 		},
 	}
-	mockGit := &MockGit{}
+	mockRegister := &MockRegister{}
 	h := msgtm.HEAD
-	err := msgtm.VersionUpAllServiceTags(stub, mockGit, msgtm.MinorUpAll, &h)
+	err := msgtm.VersionUpAllServiceTags(stub, mockRegister, msgtm.MinorUpAll, &h)
 	if err != nil {
 		t.Errorf("MinorUpAllServiceTags() error = %v, want nil", err)
 	}
-	tag1 := msgtm.GitTag("service-a-v1.3.0")
-	tag2 := msgtm.GitTag("service-b-v1.4.0")
-	expected := []*msgtm.GitTag{
-		&tag1,
-		&tag2,
+	expected := []*msgtm.ServiceTagWithSemVer{
+		msgtm.NewServiceTagWithSemVer("service-a", msgtm.NewSemVer(1, 3, 0)),
+		msgtm.NewServiceTagWithSemVer("service-b", msgtm.NewSemVer(1, 4, 0)),
 	}
 	if !cmpArrayContent(
-		mockGit.AddedTags,
+		*mockRegister.AddedTags,
 		expected,
 	) {
 		t.Errorf(
-			"MinorUpAllServiceTags() = %v, want %v", mockGit.AddedTags, expected,
+			"MinorUpAllServiceTags() = %v, want %v", mockRegister.AddedTags, expected,
 		)
 	}
 }
@@ -85,24 +81,23 @@ func TestPatchVersionUpAll(t *testing.T) {
 			msgtm.GitTag("service-a-v1.2.2"),
 		},
 	}
-	mockGit := &MockGit{}
+	mockRegister := &MockRegister{}
 	h := msgtm.HEAD
-	err := msgtm.VersionUpAllServiceTags(stub, mockGit, msgtm.PatchUpAll, &h)
+	err := msgtm.VersionUpAllServiceTags(stub, mockRegister, msgtm.PatchUpAll, &h)
 	if err != nil {
 		t.Errorf("PatchUpAllServiceTags() error = %v, want nil", err)
 	}
-	tag1 := msgtm.GitTag("service-a-v1.2.4")
-	tag2 := msgtm.GitTag("service-b-v1.3.4")
-	expected := []*msgtm.GitTag{
-		&tag1,
-		&tag2,
+	expected := []*msgtm.ServiceTagWithSemVer{
+		msgtm.NewServiceTagWithSemVer("service-a", msgtm.NewSemVer(1, 2, 4)),
+		msgtm.NewServiceTagWithSemVer("service-b", msgtm.NewSemVer(1, 3, 4)),
 	}
+
 	if !cmpArrayContent(
-		mockGit.AddedTags,
+		*mockRegister.AddedTags,
 		expected,
 	) {
 		t.Errorf(
-			"PatchUpAllServiceTags() = %v, want %v", mockGit.AddedTags, expected,
+			"PatchUpAllServiceTags() = %v, want %v", mockRegister.AddedTags, expected,
 		)
 	}
 }

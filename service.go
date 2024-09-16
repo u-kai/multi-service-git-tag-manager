@@ -1,5 +1,9 @@
 package msgtm
 
+type RegisterServiceTags interface {
+	Register(*CommitId, *[]*ServiceTagWithSemVer) error
+}
+
 type TagList interface {
 	List() (*[]GitTag, error)
 }
