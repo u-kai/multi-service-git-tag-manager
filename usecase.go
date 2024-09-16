@@ -10,6 +10,35 @@ type TagList interface {
 
 type VersionUpServiceTag func(*[]GitTag) *[]*ServiceTagWithSemVer
 
+type DestroyServiceTags interface {
+	Destroy([]*ServiceTagWithSemVer) error
+}
+
+type CommitGetter interface {
+	GetTags(*CommitId) ([]GitTag, error)
+}
+
+func ResetServiceTags(destroyer DestroyServiceTags, commitGetter CommitGetter, commitId *CommitId) error {
+	tags, err := commitGetter.GetTags(commitId)
+	if err != nil {
+		return err
+	}
+	targets := []*ServiceTagWithSemVer{}
+	for _, tag := range tags {
+		serviceTag, err := tag.ToServiceTag()
+		if err != nil {
+			continue
+		}
+		targets = append(targets, serviceTag)
+	}
+
+	err = destroyer.Destroy(targets)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func CreateServiceTags(
 	registerService RegisterServiceTags,
 	commitId *CommitId,

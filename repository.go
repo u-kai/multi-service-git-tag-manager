@@ -7,7 +7,28 @@ import (
 )
 
 type GitTagRegister struct {
-	f MakeGitTagMessage
+	f       MakeGitTagMessage
+	handler EventHandler[RegisterEvent]
+}
+
+type EventHandler[T any] func(T) error
+
+type TagType string
+
+const (
+	Light     TagType = "light"
+	Annotated TagType = "annotated"
+)
+
+type RegisterEvent struct {
+	Type     TagType
+	CommitId *CommitId
+	Tag      *ServiceTagWithSemVer
+}
+
+func logRegisterEvent(event RegisterEvent) error {
+	fmt.Printf("Register %s tag %s to %s\n", event.Type, event.Tag.String(), event.CommitId.String())
+	return nil
 }
 
 type MakeGitTagMessage func(*CommitId, *ServiceTagWithSemVer) string
@@ -16,10 +37,15 @@ func GitTagRegisterWithDefaultMessage() *GitTagRegister {
 	defaultFunc := func(commitId *CommitId, tag *ServiceTagWithSemVer) string {
 		return fmt.Sprintf("Add %s tags to %s", tag.String(), commitId.String())
 	}
-	return &GitTagRegister{f: defaultFunc}
+	return &GitTagRegister{
+		f:       defaultFunc,
+		handler: logRegisterEvent,
+	}
 }
 func DefaultGitTagRegister() *GitTagRegister {
-	return &GitTagRegister{}
+	return &GitTagRegister{
+		handler: logRegisterEvent,
+	}
 }
 
 func (g *GitTagRegister) Register(commitId *CommitId, tags *[]*ServiceTagWithSemVer) error {
@@ -29,6 +55,11 @@ func (g *GitTagRegister) Register(commitId *CommitId, tags *[]*ServiceTagWithSem
 			if err != nil {
 				return err
 			}
+			g.handler(RegisterEvent{
+				Type:     Light,
+				CommitId: commitId,
+				Tag:      tag,
+			})
 			continue
 		}
 		message := g.f(commitId, tag)
@@ -36,6 +67,12 @@ func (g *GitTagRegister) Register(commitId *CommitId, tags *[]*ServiceTagWithSem
 		if err != nil {
 			return err
 		}
+		g.handler(RegisterEvent{
+			Type:     Annotated,
+			CommitId: commitId,
+			Tag:      tag,
+		})
+
 	}
 	return nil
 }
