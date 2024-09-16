@@ -2,6 +2,7 @@ package msgtm_test
 
 import (
 	"msgtm"
+	"reflect"
 	"testing"
 )
 
@@ -226,16 +227,16 @@ func TestPatchUpAll(t *testing.T) {
 }
 
 // 順不同な配列の比較
-func cmpArrayContent(a, b []*msgtm.ServiceTagWithSemVer) bool {
+func cmpArrayContent[T any](a, b []T) bool {
 	if len(a) != len(b) {
 		return false
 	}
 	for _, v := range a {
 		found := false
 		for _, vv := range b {
-			if v.String() == vv.String() {
+			if reflect.DeepEqual(v, vv) {
 				found = true
-				continue
+				break
 			}
 		}
 		if !found {

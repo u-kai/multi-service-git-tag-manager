@@ -62,6 +62,9 @@ func (s *ServiceTagWithSemVer) UpdateMinor() {
 func (s *ServiceTagWithSemVer) UpdatePatch() {
 	s.version = s.version.PatchUp()
 }
+func (s *ServiceTagWithSemVer) ToGitTag() GitTag {
+	return GitTag(s.String())
+}
 func (s *ServiceTagWithSemVer) String() string {
 	return fmt.Sprintf("%s-%s", s.service, s.version.String())
 }

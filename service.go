@@ -24,7 +24,7 @@ func PatchUpAll(tagList TagList) (*[]*ServiceTagWithSemVer, error) {
 
 type versionUpFunc func(*ServiceTagWithSemVer)
 
-func versionUpAll(f versionUpFunc) func(tagList TagList) (*[]*ServiceTagWithSemVer, error) {
+func versionUpAll(f versionUpFunc) VersionUpService {
 	return func(tagList TagList) (*[]*ServiceTagWithSemVer, error) {
 		tags, err := tagList.List()
 		if err != nil {
