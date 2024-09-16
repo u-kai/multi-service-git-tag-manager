@@ -16,6 +16,12 @@ func MinorUpAll(tagList TagList) (*[]*ServiceTagWithSemVer, error) {
 	})(tagList)
 }
 
+func PatchUpAll(tagList TagList) (*[]*ServiceTagWithSemVer, error) {
+	return versionUpAll(func(tag *ServiceTagWithSemVer) {
+		tag.UpdatePatch()
+	})(tagList)
+}
+
 type versionUpFunc func(*ServiceTagWithSemVer)
 
 func versionUpAll(f versionUpFunc) func(tagList TagList) (*[]*ServiceTagWithSemVer, error) {
