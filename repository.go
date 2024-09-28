@@ -122,9 +122,63 @@ func tagList() (*[]GitTag, error) {
 	return &tagList, nil
 }
 
+type DestroyDecorator struct {
+	Clients []DestroyServiceTags
+}
+
+func (d *DestroyDecorator) Destroy(tags *[]*ServiceTagWithSemVer) error {
+	for _, client := range d.Clients {
+		err := client.Destroy(tags)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 type ServiceTagsDestroyer struct {
 	force   bool
 	handler EventHandler[DestroyEvent]
+}
+
+type RemoteServiceTagsDestroyer struct {
+	force   bool
+	remote  *RemoteAddr
+	handler EventHandler[DestroyEvent]
+}
+
+func ForceOriginDestroyer() *RemoteServiceTagsDestroyer {
+	origin := Origin
+	return &RemoteServiceTagsDestroyer{
+		force:   true,
+		remote:  &origin,
+		handler: logRemoteDestroyEvent,
+	}
+}
+
+func logRemoteDestroyEvent(event DestroyEvent) error {
+	fmt.Printf("destroy %s tag in remote %s\n", event.Tag.String(), event.CommitId.String())
+	return nil
+}
+
+func (r *RemoteServiceTagsDestroyer) Destroy(tags *[]*ServiceTagWithSemVer) error {
+	tagStrs := []string{}
+	for _, tag := range *tags {
+		tagStrs = append(tagStrs, tag.String())
+	}
+	_, err := gitTagRemoteDelete(r.remote.String(), tagStrs)
+	if err != nil {
+		return err
+	}
+	commitId := CommitId(*r.remote)
+	for _, tag := range *tags {
+		r.handler(DestroyEvent{
+			Tag:      tag,
+			Force:    r.force,
+			CommitId: &commitId,
+		})
+	}
+	return nil
 }
 
 func ForceDestroyer() *ServiceTagsDestroyer {
@@ -184,6 +238,19 @@ func gitTagDelete(tag string, force bool) (string, error) {
 		deleteOption = "-d"
 	}
 	cmd := exec.Command("git", "tag", deleteOption, tag)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+
+	return string(output), nil
+}
+
+func gitTagRemoteDelete(remote string, tags []string) (string, error) {
+	deleteOption := "--delete"
+	cmdArgs := []string{"push", remote, deleteOption}
+	cmdArgs = append(cmdArgs, tags...)
+	cmd := exec.Command("git", cmdArgs...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", err

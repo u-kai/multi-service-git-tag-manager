@@ -15,11 +15,25 @@ create service1-v1.0.0 and service2-v1.0.0 and service3-v1.0.0 to HEAD
 $ git tag
 ```
 
-- どうやって全てのサービスに対してタグをつける？
-- HEAD とかってどうやって解釈する？そのまま Git に渡す？
-- auto increment をできるようにしたい
-- メッセージどうする?
-  - service 毎にできたらいいけどな
-    - vim を呼ぶか
-  - 全てのサービスに対しても同じメッセージをつけることができるといいかも
-  - AI とか使って、当該サービスのディレクトリの変更に対していコメントとかつけてもらったらめちゃいいかも
+- service の config file を作成したい
+- 最初は service を羅列する
+- tag を付けていくごとに、または config file の update 毎に config file を更新する
+
+```yaml
+services:
+  - service1
+    - latest
+        - description: latest version
+        - tag: service1-v1.0.0
+        - commit: 0123456789abcdef
+    - prev
+        - description: previous version
+        - tag: service1-v0.9.0
+        - commit: 0123456789abcdef
+  - service2
+    - latest
+        - description: latest version
+        - tag: service2-v1.0.0
+        - commit: 0123456789abcdef
+  ...
+```

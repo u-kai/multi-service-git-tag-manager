@@ -49,6 +49,8 @@ func main() {
 		Short: "reset is a tool for multi service git tag manager",
 		Run:   tagResetCmd(),
 	}
+	tagResetCmd.Flags().BoolP("origin", "o", false, "Reset origin")
+	tagResetCmd.Flags().BoolP("exclude-local", "e", false, "Exclude local")
 
 	// tags push
 	tagsPushCmd := &cobra.Command{
@@ -109,7 +111,15 @@ func tagResetCmd() CobraCmdRunner {
 		}
 
 		getter := msgtm.DefaultCommitTagGetter()
-		destroyer := msgtm.ForceDestroyer()
+		destroyer := &msgtm.DestroyDecorator{}
+		origin, _ := cmd.Flags().GetBool("origin")
+		if origin {
+			destroyer.Clients = append(destroyer.Clients, msgtm.ForceOriginDestroyer())
+		}
+		excludeLocal, _ := cmd.Flags().GetBool("exclude-local")
+		if !excludeLocal {
+			destroyer.Clients = append(destroyer.Clients, msgtm.ForceDestroyer())
+		}
 
 		err := msgtm.ResetServiceTags(
 			destroyer,

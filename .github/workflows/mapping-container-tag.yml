@@ -4,7 +4,7 @@ on:
     tags:
       # This is a regular expression
       # that matches tags like "service-v1.2.3"
-      - ".+v[0-9]+\\.[0-9]+\\.[0-9]+"
+      - "*"
 
 jobs:
   echo-commit:
