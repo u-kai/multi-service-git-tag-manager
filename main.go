@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log/slog"
 	"msgtm/pkg/domain"
 	"msgtm/pkg/executor"
@@ -79,10 +80,11 @@ func main() {
 	}
 
 	rootCmd.AddCommand(listCmd(logger, list, finder))
-	rootCmd.AddCommand(tagAddCmd(logger, register))
-	rootCmd.AddCommand(tagVersionUpCmd(logger, list, register, getter))
-	rootCmd.AddCommand(tagResetCmd(logger, getter, localDestroyer, remoteDestroyer))
+	rootCmd.AddCommand(tagAddCmd(logger, register, list, finder))
+	rootCmd.AddCommand(tagVersionUpCmd(logger, list, register, getter, finder))
+	rootCmd.AddCommand(tagResetCmd(logger, getter, localDestroyer, remoteDestroyer, list, finder))
 	rootCmd.AddCommand(tagsPushCmd(logger, getter, pusher))
+	rootCmd.AddCommand(syncAllCmd(logger, list, finder))
 	rootCmd.AddCommand(initCmd(logger))
 
 	if err := rootCmd.Execute(); err != nil {
@@ -125,6 +127,59 @@ func initCmd(logger *slog.Logger) *cobra.Command {
 	return initCmd
 }
 
+func syncAll(writer io.Writer, state *domain.WritedState, list usecase.ListTags, finder usecase.CommitFinder) error {
+	state, err := usecase.SyncAllServiceTagState(state, list, finder)
+	if err != nil {
+		return err
+	}
+	err = state.Write(writer, domain.YAML)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func addSyncAll(
+	f CobraCmdRunner,
+	list usecase.ListTags,
+	finder usecase.CommitFinder,
+) CobraCmdRunner {
+	return func(cmd *cobra.Command, args []string) {
+		f(cmd, args)
+		sync, _ := cmd.Flags().GetBool("sync")
+		fileName, _ := cmd.Flags().GetString("state-file")
+		if sync {
+			file, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
+			if err != nil {
+				fmt.Printf("Failed to open file: %s\n", err.Error())
+				return
+			}
+			state, err := domain.FromReader(file, domain.YAML)
+			if err != nil {
+				fmt.Printf("Failed to read file: %s\n", err.Error())
+				return
+			}
+			err = syncAll(file, state, list, finder)
+			if err != nil {
+				fmt.Printf("Failed to sync all service tags: %s\n", err.Error())
+				return
+			}
+		}
+	}
+}
+
+func syncAllCmd(logger *slog.Logger, list usecase.ListTags, finder usecase.CommitFinder) *cobra.Command {
+	f := addSyncAll(func(_ *cobra.Command, _ []string) {}, list, finder)
+	syncAllCmd := &cobra.Command{
+		Use:   "sync",
+		Short: "sync is a tool for multi service git tag manager",
+		Run:   f,
+	}
+	syncAllCmd.Flags().BoolP("sync", "y", true, "Sync all service tags")
+	syncAllCmd.Flags().StringP("state-file", "t", "services-state.yaml", "State file")
+	return syncAllCmd
+}
+
 func listCmd(logger *slog.Logger, list usecase.ListTags, finder usecase.CommitFinder) *cobra.Command {
 	f := func(list usecase.ListTags, finder usecase.CommitFinder) CobraCmdRunner {
 		return func(cmd *cobra.Command, args []string) {
@@ -150,7 +205,7 @@ func listCmd(logger *slog.Logger, list usecase.ListTags, finder usecase.CommitFi
 	return serviceTagsListCmd
 }
 
-func tagAddCmd(logger *slog.Logger, register usecase.RegisterServiceTags) *cobra.Command {
+func tagAddCmd(logger *slog.Logger, register usecase.RegisterServiceTags, list usecase.ListTags, finder usecase.CommitFinder) *cobra.Command {
 	f := func(register usecase.RegisterServiceTags) CobraCmdRunner {
 		return func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
@@ -183,11 +238,13 @@ func tagAddCmd(logger *slog.Logger, register usecase.RegisterServiceTags) *cobra
 	tagAddCmd := &cobra.Command{
 		Use:   "add",
 		Short: "add is a tool for multi service git tag manager",
-		Run:   f(register),
+		Run:   addSyncAll(f(register), list, finder),
 	}
 	tagAddCmd.Flags().StringP("commit-id", "c", "", "Commit ID")
 	tagAddCmd.Flags().StringSliceP("services", "s", []string{}, "Add of services")
 	tagAddCmd.Flags().StringP("from-config-file", "f", "", "Add of services from config file")
+	tagAddCmd.Flags().BoolP("sync", "y", false, "Sync all service tags")
+	tagAddCmd.Flags().StringP("state-file", "t", "services-state.yaml", "State file")
 	return tagAddCmd
 }
 func tagsPushCmd(logger *slog.Logger, getter usecase.CommitTagGetter, pusher usecase.CommitPusher) *cobra.Command {
@@ -220,7 +277,7 @@ func tagsPushCmd(logger *slog.Logger, getter usecase.CommitTagGetter, pusher use
 	return tagsPushCmd
 }
 
-func tagResetCmd(logger *slog.Logger, getter usecase.CommitTagGetter, localDestroyer usecase.DestroyServiceTags, remoteDestroyer usecase.DestroyServiceTags) *cobra.Command {
+func tagResetCmd(logger *slog.Logger, getter usecase.CommitTagGetter, localDestroyer usecase.DestroyServiceTags, remoteDestroyer usecase.DestroyServiceTags, list usecase.ListTags, finder usecase.CommitFinder) *cobra.Command {
 	f := func(cmd *cobra.Command, args []string) {
 		origin, _ := cmd.Flags().GetBool("origin")
 		excludeLocal, _ := cmd.Flags().GetBool("exclude-local")
@@ -243,14 +300,16 @@ func tagResetCmd(logger *slog.Logger, getter usecase.CommitTagGetter, localDestr
 	tagResetCmd := &cobra.Command{
 		Use:   "reset",
 		Short: "reset is a tool for multi service git tag manager",
-		Run:   f,
+		Run:   addSyncAll(f, list, finder),
 	}
 	tagResetCmd.Flags().BoolP("origin", "o", false, "Reset origin")
 	tagResetCmd.Flags().BoolP("exclude-local", "e", false, "Exclude local")
+	tagResetCmd.Flags().StringP("state-file", "f", "services-state.yaml", "State file")
+	tagResetCmd.Flags().BoolP("sync", "y", false, "Sync all service tags")
 	return tagResetCmd
 }
 
-func tagVersionUpCmd(logger *slog.Logger, list usecase.ListTags, register usecase.RegisterServiceTags, getter usecase.CommitTagGetter) *cobra.Command {
+func tagVersionUpCmd(logger *slog.Logger, list usecase.ListTags, register usecase.RegisterServiceTags, getter usecase.CommitTagGetter, finder usecase.CommitFinder) *cobra.Command {
 	f := func(cmd *cobra.Command, args []string) {
 		minor, _ := cmd.Flags().GetBool("minor")
 		major, _ := cmd.Flags().GetBool("major")
@@ -283,13 +342,15 @@ func tagVersionUpCmd(logger *slog.Logger, list usecase.ListTags, register usecas
 	tagVersionUpCmd := &cobra.Command{
 		Use:   "upgrade",
 		Short: "version-up is a tool for multi service git tag manager",
-		Run:   f,
+		Run:   addSyncAll(f, list, finder),
 	}
 	tagVersionUpCmd.Flags().BoolP("minor", "m", false, "Minor version up")
 	tagVersionUpCmd.Flags().BoolP("major", "M", false, "Major version up")
 	tagVersionUpCmd.Flags().BoolP("all", "a", false, "Tag all services")
 	tagVersionUpCmd.Flags().StringP("commit-id", "c", "", "Commit ID")
 	tagVersionUpCmd.Flags().StringSliceP("services", "s", []string{}, "List of services")
+	tagVersionUpCmd.Flags().BoolP("sync", "y", false, "Sync all service tags")
+	tagVersionUpCmd.Flags().StringP("state-file", "t", "services-state.yaml", "State file")
 	return tagVersionUpCmd
 }
 

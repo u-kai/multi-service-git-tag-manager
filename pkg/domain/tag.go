@@ -238,7 +238,6 @@ func VersionUpAll(f VersionUpFunc) VersionUpServiceTag {
 }
 
 func SortsServiceTags(tags *[]*ServiceTagWithSemVer) map[ServiceName][]*ServiceTagWithSemVer {
-
 	sorted := map[ServiceName][]*ServiceTagWithSemVer{}
 	for _, tag := range *tags {
 		if _, ok := sorted[tag.Service]; !ok {

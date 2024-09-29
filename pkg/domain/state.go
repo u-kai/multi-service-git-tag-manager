@@ -34,16 +34,16 @@ type ServiceTagInfo struct {
 	CommitComment *string               `json:"commitComment" yaml:"commitComment"`
 }
 
-type StateWriter struct {
-	ServiceTagStates []*ServiceTagState
+type WritedState struct {
+	ServiceTagStates []*ServiceTagState `json:"services" yaml:"services"`
 }
 
-func InitStateWriter(services ...ServiceName) *StateWriter {
+func InitStateWriter(services ...ServiceName) *WritedState {
 	states := make([]*ServiceTagState, 0)
 	for _, service := range services {
 		states = append(states, InitServiceTagState(&service))
 	}
-	return &StateWriter{
+	return &WritedState{
 		ServiceTagStates: states,
 	}
 }
@@ -55,14 +55,30 @@ const (
 	YAML
 )
 
-type WritedState struct {
-	Services []*ServiceTagState `json:"services" yaml:"services"`
+func (s *WritedState) Update(serviceName ServiceName, tag *ServiceTagInfo) {
+	// len 0はfor文が実行されないため
+	if len(s.ServiceTagStates) == 0 {
+		s.ServiceTagStates = append(s.ServiceTagStates, InitServiceTagState(&serviceName))
+		s.ServiceTagStates[0].UpdateLatest(tag)
+		return
+	}
+	for i, state := range s.ServiceTagStates {
+		if *state.ServiceName == serviceName {
+			state.UpdateLatest(tag)
+			return
+		}
+		if i == len(s.ServiceTagStates)-1 {
+			newS := InitServiceTagState(&serviceName)
+			newS.UpdateLatest(tag)
+			s.ServiceTagStates = append(s.ServiceTagStates, newS)
+		}
+	}
 }
 
-func (stateWriter *StateWriter) Write(writer io.Writer, format WriteFormat) error {
+func (s *WritedState) Write(writer io.Writer, format WriteFormat) error {
 	switch format {
 	case JSON:
-		b, err := json.Marshal(WritedState{Services: stateWriter.ServiceTagStates})
+		b, err := json.Marshal(s)
 		if err != nil {
 			return err
 		}
@@ -72,7 +88,7 @@ func (stateWriter *StateWriter) Write(writer io.Writer, format WriteFormat) erro
 		}
 		return nil
 	case YAML:
-		b, err := yaml.Marshal(WritedState{Services: stateWriter.ServiceTagStates})
+		b, err := yaml.Marshal(s)
 		if err != nil {
 			return err
 		}
@@ -85,4 +101,29 @@ func (stateWriter *StateWriter) Write(writer io.Writer, format WriteFormat) erro
 	}
 
 	return nil
+}
+
+func FromReader(reader io.Reader, format WriteFormat) (*WritedState, error) {
+	b := []byte{}
+	_, err := reader.Read(b)
+	if err != nil {
+		return nil, err
+	}
+	switch format {
+	case JSON:
+		state := &WritedState{}
+		err = json.Unmarshal(b, state)
+		if err != nil {
+			return nil, err
+		}
+		return state, nil
+	case YAML:
+		state := &WritedState{}
+		err = yaml.Unmarshal(b, state)
+		if err != nil {
+			return nil, err
+		}
+		return state, nil
+	}
+	return nil, fmt.Errorf("unsupported format: %v", format)
 }
