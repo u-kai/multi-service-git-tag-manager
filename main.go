@@ -66,12 +66,19 @@ func main() {
 		},
 		Logger: logger,
 	}
+	finder := &executor.LoggingQueryExecutor[usecase.FindCommitQuery, *domain.CommitId]{
+		Executor: &executor.CommitFinder{
+			GitCommandExecutor: gitExecutor,
+		},
+		Logger: logger,
+	}
 
 	rootCmd := &cobra.Command{
 		Use:   "msgtn",
 		Short: "msgtn is a tool for multi service git tag manager",
 	}
 
+	rootCmd.AddCommand(listCmd(logger, list, finder))
 	rootCmd.AddCommand(tagAddCmd(logger, register))
 	rootCmd.AddCommand(tagVersionUpCmd(logger, list, register, getter))
 	rootCmd.AddCommand(tagResetCmd(logger, getter, localDestroyer, remoteDestroyer))
@@ -83,6 +90,31 @@ func main() {
 }
 
 type CobraCmdRunner func(cmd *cobra.Command, args []string)
+
+func listCmd(logger *slog.Logger, list usecase.ListTags, finder usecase.CommitFinder) *cobra.Command {
+	f := func(list usecase.ListTags, finder usecase.CommitFinder) CobraCmdRunner {
+		return func(cmd *cobra.Command, args []string) {
+			services, _ := cmd.Flags().GetStringSlice("services")
+			err := subcmd.LogSubCommandDecorator(
+				subcmd.ServiceTagsListCommand(list, finder),
+				logger,
+			)(subcmd.ServiceTagsListParameter{
+				Filter: services,
+			})
+			if err != nil {
+				fmt.Printf("Failed to list service tags: %s\n", err.Error())
+				return
+			}
+		}
+	}
+	serviceTagsListCmd := &cobra.Command{
+		Use:   "list",
+		Short: "list is a tool for multi service git tag manager",
+		Run:   f(list, finder),
+	}
+	serviceTagsListCmd.Flags().StringSliceP("services", "s", []string{}, "services")
+	return serviceTagsListCmd
+}
 
 func tagAddCmd(logger *slog.Logger, register usecase.RegisterServiceTags) *cobra.Command {
 	f := func(register usecase.RegisterServiceTags) CobraCmdRunner {

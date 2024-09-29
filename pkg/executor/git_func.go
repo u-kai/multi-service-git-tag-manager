@@ -90,6 +90,9 @@ func gitShowCommitTags(executor GitCommandExecutor, commitId string) ([]string, 
 	}
 	return result, nil
 }
+func gitRevList(executor GitCommandExecutor, tag string) (string, error) {
+	return executor("rev-list", "-n", "1", tag)
+}
 
 func gitShowCommit(executor GitCommandExecutor, commitId string) (string, error) {
 	return executor("show", commitId, "--decorate")

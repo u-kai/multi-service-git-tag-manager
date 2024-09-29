@@ -18,8 +18,12 @@ func (f *GitTagList) Execute(cmd usecase.ListTagsQuery) (*[]domain.GitTag, error
 	}
 	filteredTags := []domain.GitTag{}
 	for _, tag := range *tags {
-		for _, service := range *cmd.Filter {
-			if service.IsServiceTag(&tag) {
+		if cmd.Filter == nil {
+			filteredTags = append(filteredTags, tag)
+			continue
+		}
+		for _, filter := range *cmd.Filter {
+			if filter.IsServiceTag(&tag) {
 				filteredTags = append(filteredTags, tag)
 			}
 		}

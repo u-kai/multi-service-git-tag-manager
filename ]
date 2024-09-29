@@ -35,9 +35,9 @@ type GetCommitTagQuery struct {
 }
 
 // CommitGetter is a usecase that gets the tags of the specified commit.
-type CommitFinder = QueryExecutor[FindCommitQuery, *domain.CommitId]
+type CommitFinder = QueryExecutor[FindCommitQuery, *[]domain.GitTag]
 type FindCommitQuery struct {
-	Tag *domain.GitTag
+	CommitId *domain.CommitId
 }
 
 // CommitPusher is a usecase that pushes the specified tags to the remote repository.
