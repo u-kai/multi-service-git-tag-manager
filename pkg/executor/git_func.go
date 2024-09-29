@@ -1,18 +1,40 @@
 package executor
 
 import (
+	"log/slog"
 	"msgtm/pkg/domain"
 	"os/exec"
 	"strings"
 )
 
-func tagList() (*[]domain.GitTag, error) {
-	cmd := exec.Command("git", "tag")
-	output, err := cmd.CombinedOutput()
+type gitCommandExecutor func(args ...string) (string, error)
+
+func GitShellCommandExecutor() gitCommandExecutor {
+	return func(args ...string) (string, error) {
+		cmd := exec.Command("git", args...)
+		output, err := cmd.CombinedOutput()
+		return string(output), err
+	}
+}
+
+func LogDecorateToExecutor(gitCmd gitCommandExecutor, logger slog.Logger) gitCommandExecutor {
+	return func(args ...string) (string, error) {
+		logger.Debug("git command", slog.Any("args", args))
+		output, err := gitCmd(args...)
+		if err != nil {
+			logger.Error("git command failed", slog.Any("error", err), slog.String("output", output))
+			return output, err
+		}
+		logger.Debug("git command", slog.String("output", output))
+		return output, nil
+	}
+}
+
+func tagList(executor gitCommandExecutor) (*[]domain.GitTag, error) {
+	output, err := executor("tag")
 	if err != nil {
 		return nil, err
 	}
-
 	tags := strings.Split(string(output), "\n")
 	tagList := []domain.GitTag{}
 	for _, tag := range tags {
@@ -21,74 +43,58 @@ func tagList() (*[]domain.GitTag, error) {
 		}
 		tagList = append(tagList, domain.GitTag(tag))
 	}
-
 	return &tagList, nil
 }
 
-func gitTagAddLight(commitId string, tag string) (string, error) {
-	cmd := exec.Command("git", "tag", tag, commitId)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", err
-	}
-
-	return string(output), nil
-}
-func gitTagAdd(commitId string, tag string, message string) (string, error) {
-	cmd := exec.Command("git", "tag", "-a", tag, "-m", message, commitId)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", err
-	}
-
-	return string(output), nil
+func gitTagAddLight(executor gitCommandExecutor, commitId string, tag string) (string, error) {
+	return executor("tag", tag, commitId)
 }
 
-func gitTagDelete(tag string, force bool) (string, error) {
+func gitTagAdd(executor gitCommandExecutor, commitId string, tag string, message string) (string, error) {
+	return executor("tag", "-a", tag, "-m", message, commitId)
+}
+
+func gitTagDelete(executor gitCommandExecutor, tag string, force bool) (string, error) {
 	deleteOption := "-d"
 	if force {
 		deleteOption = "-d"
 	}
-	cmd := exec.Command("git", "tag", deleteOption, tag)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", err
-	}
-
-	return string(output), nil
+	return executor("tag", deleteOption, tag)
 }
 
-func gitTagRemoteDelete(remote string, tags []string) (string, error) {
+func gitTagRemoteDelete(executor gitCommandExecutor, remote string, tags []string) (string, error) {
 	deleteOption := "--delete"
 	cmdArgs := []string{"push", remote, deleteOption}
 	cmdArgs = append(cmdArgs, tags...)
-	cmd := exec.Command("git", cmdArgs...)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", err
-	}
-
-	return string(output), nil
+	return executor(cmdArgs...)
 }
 
-func gitShowCommit(commitId string) (string, error) {
-	cmd := exec.Command("git", "show", commitId, "--decorate")
-	output, err := cmd.CombinedOutput()
+func gitShowCommitTags(executor gitCommandExecutor, commitId string) ([]string, error) {
+	output, err := gitShowCommit(executor, commitId)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
-	return string(output), nil
+	commitLine := strings.Split(output, "\n")[0]
+	// tag: service1-v1.1.1, tags: service2-v1.1.1
+	tagsStr := strings.Split(commitLine, "(")[1]
+	// remove ")"
+	tagsStr = tagsStr[:len(tagsStr)-1]
+	result := []string{}
+	for _, tagStr := range strings.Split(tagsStr, ", ") {
+		if !strings.HasPrefix(tagStr, "tag: ") {
+			continue
+		}
+		result = append(result, strings.Split(tagStr, "tag: ")[1])
+	}
+	return result, nil
 }
 
-func gitPushTags(remote string, tags ...string) (string, error) {
+func gitShowCommit(executor gitCommandExecutor, commitId string) (string, error) {
+	return executor("show", commitId, "--decorate")
+}
+
+func gitPushTags(executor gitCommandExecutor, remote string, tags ...string) (string, error) {
 	args := []string{"push", remote}
 	args = append(args, tags...)
-	cmd := exec.Command("git", args...)
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		return "", err
-	}
-
-	return string(output), nil
+	return executor(args...)
 }

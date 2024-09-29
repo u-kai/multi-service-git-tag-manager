@@ -1,6 +1,42 @@
 package usecase
 
-import "msgtm/pkg/domain"
+import (
+	"log/slog"
+	"msgtm/pkg/domain"
+)
+
+type LoggingCommandExecutor[Command any] struct {
+	Executor CommandExecutor[Command]
+	Logger   slog.Logger
+}
+
+func (l *LoggingCommandExecutor[Command]) Execute(cmd Command) error {
+	l.Logger.Debug("CommandExecutor: Execute", slog.Any("command", cmd))
+	err := l.Executor.Execute(cmd)
+	if err != nil {
+		l.Logger.Error("CommandExecutor: Execute", slog.Any("error", err))
+		return err
+	}
+	l.Logger.Debug("CommandExecutor: Execute", slog.Any("result", "success"))
+	return nil
+}
+
+type LoggingQueryExecutor[Query any, Entity any] struct {
+	Executor QueryExecutor[Query, Entity]
+	Logger   slog.Logger
+}
+
+func (l *LoggingQueryExecutor[Query, Entity]) Execute(query Query) (Entity, error) {
+	l.Logger.Debug("QueryExecutor: Execute", slog.Any("query", query))
+	entity, err := l.Executor.Execute(query)
+	if err != nil {
+		l.Logger.Error("QueryExecutor: Execute", slog.Any("error", err))
+		e := new(Entity)
+		return *e, err
+	}
+	l.Logger.Debug("QueryExecutor: Execute", slog.Any("result", entity))
+	return entity, nil
+}
 
 // In the case of using APIs that involve side effects such as registration or deletion.
 type CommandExecutor[Command any] interface {

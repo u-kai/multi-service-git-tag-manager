@@ -20,12 +20,13 @@ func (d *DestroyDecorator) Execute(cmd usecase.DestroyServiceTagsCommand) error 
 }
 
 type LocalServiceTagsDestroyer struct {
-	force bool
+	Force              bool
+	GitCommandExecutor gitCommandExecutor
 }
 
 func (s *LocalServiceTagsDestroyer) Execute(cmd usecase.DestroyServiceTagsCommand) error {
 	for _, tag := range *cmd.Tags {
-		_, err := gitTagDelete(tag.String(), s.force)
+		_, err := gitTagDelete(s.GitCommandExecutor, tag.String(), s.Force)
 		if err != nil {
 			return err
 		}
@@ -34,8 +35,9 @@ func (s *LocalServiceTagsDestroyer) Execute(cmd usecase.DestroyServiceTagsComman
 }
 
 type RemoteServiceTagsDestroyer struct {
-	Force  bool
-	Remote *domain.RemoteAddr
+	Force              bool
+	Remote             *domain.RemoteAddr
+	GitCommandExecutor gitCommandExecutor
 }
 
 func (r *RemoteServiceTagsDestroyer) Execute(cmd usecase.DestroyServiceTagsCommand) error {
@@ -43,7 +45,7 @@ func (r *RemoteServiceTagsDestroyer) Execute(cmd usecase.DestroyServiceTagsComma
 	for _, tag := range *cmd.Tags {
 		tagStrs = append(tagStrs, tag.String())
 	}
-	_, err := gitTagRemoteDelete(r.Remote.String(), tagStrs)
+	_, err := gitTagRemoteDelete(r.GitCommandExecutor, r.Remote.String(), tagStrs)
 	if err != nil {
 		return err
 	}

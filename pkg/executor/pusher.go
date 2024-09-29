@@ -3,6 +3,7 @@ package executor
 import "msgtm/pkg/usecase"
 
 type GitTagPusher struct {
+	GitCommandExecutor gitCommandExecutor
 }
 
 func (g *GitTagPusher) Execute(cmd usecase.CommitPushCommand) error {
@@ -10,7 +11,7 @@ func (g *GitTagPusher) Execute(cmd usecase.CommitPushCommand) error {
 	for _, tag := range *cmd.Tags {
 		tagStrs = append(tagStrs, tag.String())
 	}
-	_, err := gitPushTags(cmd.RemoteAddr.String(), tagStrs...)
+	_, err := gitPushTags(g.GitCommandExecutor, cmd.RemoteAddr.String(), tagStrs...)
 	if err != nil {
 		return err
 	}

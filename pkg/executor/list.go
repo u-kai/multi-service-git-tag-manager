@@ -5,10 +5,14 @@ import (
 	"msgtm/pkg/usecase"
 )
 
-type GitTagList struct{}
+type GitTagList struct {
+	GitCommandExecutor gitCommandExecutor
+}
 
 func (f *GitTagList) Execute(cmd usecase.ListTagsQuery) (*[]domain.GitTag, error) {
-	tags, err := tagList()
+	tags, err := tagList(
+		f.GitCommandExecutor,
+	)
 	if err != nil {
 		return nil, err
 	}

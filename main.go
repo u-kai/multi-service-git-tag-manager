@@ -221,7 +221,7 @@ func tagAddCmd() CobraCmdRunner {
 			serviceNames = append(serviceNames, domain.ServiceName(service))
 		}
 
-		register := executor.NewGitTagRegister()
+		register := executor.NewGitTagRegister(executor.GitShellCommandExecutor())
 		err = usecase.CreateServiceTags(
 			register,
 			&commitId,
