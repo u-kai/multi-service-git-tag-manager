@@ -236,3 +236,24 @@ func VersionUpAll(f VersionUpFunc) VersionUpServiceTag {
 		return &serviceTags
 	}
 }
+
+func SortsServiceTags(tags *[]*ServiceTagWithSemVer) map[ServiceName][]*ServiceTagWithSemVer {
+
+	sorted := map[ServiceName][]*ServiceTagWithSemVer{}
+	for _, tag := range *tags {
+		if _, ok := sorted[tag.Service]; !ok {
+			sorted[tag.Service] = []*ServiceTagWithSemVer{}
+		}
+		sorted[tag.Service] = append(sorted[tag.Service], tag)
+	}
+	for _, serviceTags := range sorted {
+		for i := 0; i < len(serviceTags); i++ {
+			for j := i + 1; j < len(serviceTags); j++ {
+				if serviceTags[i].GreaterThan(serviceTags[j]) {
+					serviceTags[i], serviceTags[j] = serviceTags[j], serviceTags[i]
+				}
+			}
+		}
+	}
+	return sorted
+}

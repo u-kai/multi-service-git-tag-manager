@@ -1,0 +1,10 @@
+services:
+  - name: a
+    latest: null
+    prev: null
+  - name: b
+    latest: null
+    prev: null
+  - name: c
+    latest: null
+    prev: null

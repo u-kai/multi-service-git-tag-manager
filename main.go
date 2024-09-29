@@ -83,6 +83,7 @@ func main() {
 	rootCmd.AddCommand(tagVersionUpCmd(logger, list, register, getter))
 	rootCmd.AddCommand(tagResetCmd(logger, getter, localDestroyer, remoteDestroyer))
 	rootCmd.AddCommand(tagsPushCmd(logger, getter, pusher))
+	rootCmd.AddCommand(initCmd(logger))
 
 	if err := rootCmd.Execute(); err != nil {
 		panic(err)
@@ -90,6 +91,39 @@ func main() {
 }
 
 type CobraCmdRunner func(cmd *cobra.Command, args []string)
+
+func initCmd(logger *slog.Logger) *cobra.Command {
+	f := func() CobraCmdRunner {
+		return func(cmd *cobra.Command, args []string) {
+			fileName, _ := cmd.Flags().GetString("filename")
+			services, _ := cmd.Flags().GetStringSlice("services")
+			serviceConfigs := make([]domain.ServiceName, 0)
+			for _, service := range services {
+				serviceConfigs = append(serviceConfigs, domain.ServiceName(service))
+			}
+			logger.Debug("serviceConfigs", slog.Any("serviceConfigs", serviceConfigs))
+			stateWriter := domain.InitStateWriter(serviceConfigs...)
+			file, err := os.Create(fileName)
+			if err != nil {
+				fmt.Printf("Failed to create file: %s\n", err.Error())
+				return
+			}
+			err = stateWriter.Write(file, domain.YAML)
+			if err != nil {
+				fmt.Printf("Failed to write file: %s\n", err.Error())
+				return
+			}
+		}
+	}
+	initCmd := &cobra.Command{
+		Use:   "init",
+		Short: "init is a tool for multi service git tag manager",
+		Run:   f(),
+	}
+	initCmd.Flags().StringP("filename", "f", "services-state.yaml", "filename")
+	initCmd.Flags().StringSliceP("services", "s", []string{}, "services")
+	return initCmd
+}
 
 func listCmd(logger *slog.Logger, list usecase.ListTags, finder usecase.CommitFinder) *cobra.Command {
 	f := func(list usecase.ListTags, finder usecase.CommitFinder) CobraCmdRunner {

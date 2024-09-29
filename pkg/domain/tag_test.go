@@ -6,6 +6,47 @@ import (
 	"testing"
 )
 
+func TestSorts(t *testing.T) {
+	tests := []struct {
+		name  string
+		input *[]*domain.ServiceTagWithSemVer
+		want  map[domain.ServiceName][]*domain.ServiceTagWithSemVer
+	}{
+		{
+			name: "sorts",
+			input: &[]*domain.ServiceTagWithSemVer{
+				domain.NewServiceTagWithSemVer(domain.ServiceName("service-a"), domain.NewSemVer(1, 2, 3)),
+				domain.NewServiceTagWithSemVer(domain.ServiceName("service-b"), domain.NewSemVer(2, 3, 4)),
+				domain.NewServiceTagWithSemVer(domain.ServiceName("service-a"), domain.NewSemVer(1, 2, 4)),
+				domain.NewServiceTagWithSemVer(domain.ServiceName("service-b"), domain.NewSemVer(2, 3, 3)),
+				domain.NewServiceTagWithSemVer(domain.ServiceName("service-a"), domain.NewSemVer(1, 2, 2)),
+				domain.NewServiceTagWithSemVer(domain.ServiceName("service-b"), domain.NewSemVer(2, 3, 2)),
+			},
+			want: map[domain.ServiceName][]*domain.ServiceTagWithSemVer{
+				domain.ServiceName("service-a"): {
+					domain.NewServiceTagWithSemVer(domain.ServiceName("service-a"), domain.NewSemVer(1, 2, 2)),
+					domain.NewServiceTagWithSemVer(domain.ServiceName("service-a"), domain.NewSemVer(1, 2, 3)),
+					domain.NewServiceTagWithSemVer(domain.ServiceName("service-a"), domain.NewSemVer(1, 2, 4)),
+				},
+				domain.ServiceName("service-b"): {
+					domain.NewServiceTagWithSemVer(domain.ServiceName("service-b"), domain.NewSemVer(2, 3, 2)),
+					domain.NewServiceTagWithSemVer(domain.ServiceName("service-b"), domain.NewSemVer(2, 3, 3)),
+					domain.NewServiceTagWithSemVer(domain.ServiceName("service-b"), domain.NewSemVer(2, 3, 4)),
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := domain.SortsServiceTags(tt.input)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Sorts() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+
+}
+
 func TestServiceTagUpdate(t *testing.T) {
 	tests := []struct {
 		name        string
