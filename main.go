@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"msgtm"
+	"msgtm/pkg/domain"
+	"msgtm/pkg/executor"
+	"msgtm/pkg/usecase"
 	"os"
-
-	//	"os/exec"
 
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -17,8 +17,8 @@ const HEAD CommitId = "HEAD"
 
 func main() {
 	rootCmd := &cobra.Command{
-		Use:   "msgtm",
-		Short: "msgtm is a tool for multi service git tag manager",
+		Use:   "domain",
+		Short: "domain is a tool for multi service git tag manager",
 	}
 
 	// tag add
@@ -78,19 +78,19 @@ func tagsPushCmd() CobraCmdRunner {
 		commitIdStr, _ := cmd.Flags().GetString("commit-id")
 		remoteStr, _ := cmd.Flags().GetString("remote")
 
-		commitId := msgtm.HEAD
+		commitId := domain.HEAD
 		if commitIdStr != "" {
-			commitId = msgtm.CommitId(commitIdStr)
+			commitId = domain.CommitId(commitIdStr)
 		}
-		remote := msgtm.Origin
+		remote := domain.Origin
 		if remoteStr != "" {
-			remote = msgtm.RemoteAddr(remoteStr)
+			remote = domain.RemoteAddr(remoteStr)
 		}
 
-		getter := msgtm.DefaultCommitTagGetter()
-		pusher := msgtm.DefaultGitTagPusher()
+		getter := &executor.CommitTagGetter{}
+		pusher := &executor.GitTagPusher{}
 
-		err := msgtm.PushAll(
+		err := usecase.PushAll(
 			getter,
 			pusher,
 			&remote,
@@ -105,23 +105,23 @@ func tagsPushCmd() CobraCmdRunner {
 
 func tagResetCmd() CobraCmdRunner {
 	return func(cmd *cobra.Command, args []string) {
-		commitId := msgtm.HEAD
+		commitId := domain.HEAD
 		if len(args) > 0 {
-			commitId = msgtm.CommitId(args[0])
+			commitId = domain.CommitId(args[0])
 		}
 
-		getter := msgtm.DefaultCommitTagGetter()
-		destroyer := &msgtm.DestroyDecorator{}
+		getter := &executor.CommitTagGetter{}
+		destroyer := &executor.DestroyDecorator{}
 		origin, _ := cmd.Flags().GetBool("origin")
 		if origin {
-			destroyer.Clients = append(destroyer.Clients, msgtm.ForceOriginDestroyer())
+			destroyer.Clients = append(destroyer.Clients, &executor.RemoteServiceTagsDestroyer{})
 		}
 		excludeLocal, _ := cmd.Flags().GetBool("exclude-local")
 		if !excludeLocal {
-			destroyer.Clients = append(destroyer.Clients, msgtm.ForceDestroyer())
+			destroyer.Clients = append(destroyer.Clients, &executor.LocalServiceTagsDestroyer{})
 		}
 
-		err := msgtm.ResetServiceTags(
+		err := usecase.ResetServiceTags(
 			destroyer,
 			getter,
 			&commitId,
@@ -141,33 +141,35 @@ func tagVersionUpCmd() CobraCmdRunner {
 		commitIdStr, _ := cmd.Flags().GetString("commit-id")
 		services, _ := cmd.Flags().GetStringSlice("services")
 
-		commitId := msgtm.HEAD
+		commitId := domain.HEAD
 		if commitIdStr != "" {
-			commitId = msgtm.CommitId(commitIdStr)
+			commitId = domain.CommitId(commitIdStr)
 		}
-
-		var list msgtm.TagList = &msgtm.AllTagList{}
+		list := &executor.GitTagList{}
+		excludeServices := []*domain.ServiceName{}
 		if !isAll && len(services) > 0 {
-			list = &msgtm.FilterTagList{
-				IncludePrefix: services,
+			for _, service := range services {
+				service := domain.ServiceName(service)
+				excludeServices = append(excludeServices, &service)
 			}
 		}
 
-		f := msgtm.PatchUpAll
+		f := domain.PatchUpAll
 		if minor {
-			f = msgtm.MinorUpAll
+			f = domain.MinorUpAll
 		}
 		if major {
-			f = msgtm.MajorUpAll
+			f = domain.MajorUpAll
 		}
 
-		register := msgtm.DefaultGitTagRegister()
+		register := &executor.GitTagRegister{}
 
-		err := msgtm.VersionUpAllServiceTags(
+		err := usecase.VersionUpAllServiceTags(
 			list,
 			register,
 			f,
 			&commitId,
+			excludeServices...,
 		)
 
 		if err != nil {
@@ -184,7 +186,7 @@ func tagAddCmd() CobraCmdRunner {
 			return
 		}
 		version := args[0]
-		semVer, err := msgtm.FromStr(version)
+		semVer, err := domain.FromStr(version)
 		if err != nil {
 			fmt.Printf("Failed to parse args: %s\n err msg: %s", version, err.Error())
 			return
@@ -210,16 +212,20 @@ func tagAddCmd() CobraCmdRunner {
 			}
 		}
 
-		commitId := msgtm.HEAD
+		commitId := domain.HEAD
 		if commitIdStr != "" {
-			commitId = msgtm.CommitId(commitIdStr)
+			commitId = domain.CommitId(commitIdStr)
+		}
+		serviceNames := []domain.ServiceName{}
+		for _, service := range services {
+			serviceNames = append(serviceNames, domain.ServiceName(service))
 		}
 
-		register := msgtm.DefaultGitTagRegister()
-		err = msgtm.CreateServiceTags(
+		register := executor.NewGitTagRegister()
+		err = usecase.CreateServiceTags(
 			register,
 			&commitId,
-			services,
+			serviceNames,
 			semVer,
 		)
 		if err != nil {
