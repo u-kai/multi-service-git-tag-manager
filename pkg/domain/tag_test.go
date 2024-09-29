@@ -53,6 +53,56 @@ func TestServiceTagUpdate(t *testing.T) {
 
 }
 
+func TestSemVerFromStr(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  domain.SemVer
+		isErr bool
+	}{
+		{
+			name:  "valid semver string",
+			input: "v1.2.3",
+			want:  domain.NewSemVer(1, 2, 3),
+		},
+		{
+			name:  "valid semver string without v",
+			input: "1.2.3",
+			want:  domain.NewSemVer(1, 2, 3),
+		},
+		{
+			name:  "valid semver string v0.0.0",
+			input: "v0.0.0",
+			want:  domain.NewSemVer(0, 0, 0),
+		},
+		{
+			name:  "valid case add trim string",
+			input: "v0.0.0\n",
+			want:  domain.NewSemVer(0, 0, 0),
+		},
+		{
+			name:  "invalid semver string",
+			input: "v1.2",
+			isErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := domain.FromStr(tt.input)
+			if (err != nil) != tt.isErr {
+				t.Errorf("FromStr() error = %v, wantErr %v", err, tt.isErr)
+				return
+			}
+			if tt.isErr {
+				return
+			}
+			if got.String() != tt.want.String() {
+				t.Errorf("FromStr() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestVersionCompare(t *testing.T) {
 	const (
 		Greater = iota

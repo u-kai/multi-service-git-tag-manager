@@ -8,7 +8,7 @@ import (
 
 type GitTagRegister struct {
 	f                  makeGitTagMessage
-	GitCommandExecutor gitCommandExecutor
+	GitCommandExecutor GitCommandExecutor
 }
 
 type TagType string
@@ -20,7 +20,7 @@ const (
 
 type makeGitTagMessage func(*domain.CommitId, *domain.ServiceTagWithSemVer) string
 
-func NewGitTagRegister(executor gitCommandExecutor, opt ...makeGitTagMessage) *GitTagRegister {
+func NewGitTagRegister(executor GitCommandExecutor, opt ...makeGitTagMessage) *GitTagRegister {
 	f := func(commitId *domain.CommitId, tag *domain.ServiceTagWithSemVer) string {
 		return fmt.Sprintf("Add %s tags to %s", tag.String(), commitId.String())
 	}
@@ -28,7 +28,8 @@ func NewGitTagRegister(executor gitCommandExecutor, opt ...makeGitTagMessage) *G
 		f = opt[0]
 	}
 	return &GitTagRegister{
-		f: f,
+		f:                  f,
+		GitCommandExecutor: executor,
 	}
 }
 

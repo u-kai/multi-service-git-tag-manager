@@ -7,9 +7,9 @@ import (
 	"strings"
 )
 
-type gitCommandExecutor func(args ...string) (string, error)
+type GitCommandExecutor func(args ...string) (string, error)
 
-func GitShellCommandExecutor() gitCommandExecutor {
+func GitShellCommandExecutor() GitCommandExecutor {
 	return func(args ...string) (string, error) {
 		cmd := exec.Command("git", args...)
 		output, err := cmd.CombinedOutput()
@@ -17,20 +17,22 @@ func GitShellCommandExecutor() gitCommandExecutor {
 	}
 }
 
-func LogDecorateToExecutor(gitCmd gitCommandExecutor, logger slog.Logger) gitCommandExecutor {
+type outputTransformer func(string) string
+
+func LogDecorateToExecutor(gitCmd GitCommandExecutor, logger *slog.Logger, outputTransformer outputTransformer) GitCommandExecutor {
 	return func(args ...string) (string, error) {
-		logger.Debug("git command", slog.Any("args", args))
+		logger.Debug("git command execute", slog.Any("args", args))
 		output, err := gitCmd(args...)
 		if err != nil {
-			logger.Error("git command failed", slog.Any("error", err), slog.String("output", output))
+			logger.Error("git command failed", slog.Any("error", err), slog.String("output", outputTransformer(output)))
 			return output, err
 		}
-		logger.Debug("git command", slog.String("output", output))
+		logger.Debug("git command output", slog.String("output", outputTransformer(output)))
 		return output, nil
 	}
 }
 
-func tagList(executor gitCommandExecutor) (*[]domain.GitTag, error) {
+func tagList(executor GitCommandExecutor) (*[]domain.GitTag, error) {
 	output, err := executor("tag")
 	if err != nil {
 		return nil, err
@@ -46,15 +48,15 @@ func tagList(executor gitCommandExecutor) (*[]domain.GitTag, error) {
 	return &tagList, nil
 }
 
-func gitTagAddLight(executor gitCommandExecutor, commitId string, tag string) (string, error) {
+func gitTagAddLight(executor GitCommandExecutor, commitId string, tag string) (string, error) {
 	return executor("tag", tag, commitId)
 }
 
-func gitTagAdd(executor gitCommandExecutor, commitId string, tag string, message string) (string, error) {
+func gitTagAdd(executor GitCommandExecutor, commitId string, tag string, message string) (string, error) {
 	return executor("tag", "-a", tag, "-m", message, commitId)
 }
 
-func gitTagDelete(executor gitCommandExecutor, tag string, force bool) (string, error) {
+func gitTagDelete(executor GitCommandExecutor, tag string, force bool) (string, error) {
 	deleteOption := "-d"
 	if force {
 		deleteOption = "-d"
@@ -62,14 +64,14 @@ func gitTagDelete(executor gitCommandExecutor, tag string, force bool) (string, 
 	return executor("tag", deleteOption, tag)
 }
 
-func gitTagRemoteDelete(executor gitCommandExecutor, remote string, tags []string) (string, error) {
+func gitTagRemoteDelete(executor GitCommandExecutor, remote string, tags []string) (string, error) {
 	deleteOption := "--delete"
 	cmdArgs := []string{"push", remote, deleteOption}
 	cmdArgs = append(cmdArgs, tags...)
 	return executor(cmdArgs...)
 }
 
-func gitShowCommitTags(executor gitCommandExecutor, commitId string) ([]string, error) {
+func gitShowCommitTags(executor GitCommandExecutor, commitId string) ([]string, error) {
 	output, err := gitShowCommit(executor, commitId)
 	if err != nil {
 		return nil, err
@@ -89,11 +91,11 @@ func gitShowCommitTags(executor gitCommandExecutor, commitId string) ([]string, 
 	return result, nil
 }
 
-func gitShowCommit(executor gitCommandExecutor, commitId string) (string, error) {
+func gitShowCommit(executor GitCommandExecutor, commitId string) (string, error) {
 	return executor("show", commitId, "--decorate")
 }
 
-func gitPushTags(executor gitCommandExecutor, remote string, tags ...string) (string, error) {
+func gitPushTags(executor GitCommandExecutor, remote string, tags ...string) (string, error) {
 	args := []string{"push", remote}
 	args = append(args, tags...)
 	return executor(args...)

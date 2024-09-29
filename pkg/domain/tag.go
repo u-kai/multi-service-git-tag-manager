@@ -12,51 +12,47 @@ func (g GitTag) String() string {
 }
 
 type ServiceTagWithSemVer struct {
-	service ServiceName
-	version SemVer
+	Service ServiceName
+	Version SemVer
 }
 
 func NewServiceTagWithSemVer(service ServiceName, version SemVer) *ServiceTagWithSemVer {
 	return &ServiceTagWithSemVer{
-		service: service,
-		version: version,
+		Service: service,
+		Version: version,
 	}
 }
 
-func (s *ServiceTagWithSemVer) Service() ServiceName {
-	return s.service
-}
-
 func (s *ServiceTagWithSemVer) UpdateMajor() {
-	s.version = s.version.MajorUp()
+	s.Version = s.Version.MajorUp()
 }
 func (s *ServiceTagWithSemVer) UpdateMinor() {
-	s.version = s.version.MinorUp()
+	s.Version = s.Version.MinorUp()
 }
 func (s *ServiceTagWithSemVer) UpdatePatch() {
-	s.version = s.version.PatchUp()
+	s.Version = s.Version.PatchUp()
 }
 func (s *ServiceTagWithSemVer) ToGitTag() GitTag {
 	return GitTag(s.String())
 }
 func (s *ServiceTagWithSemVer) String() string {
-	return fmt.Sprintf("%s-%s", s.service, s.version.String())
+	return fmt.Sprintf("%s-%s", s.Service, s.Version.String())
 }
 
 func (s *ServiceTagWithSemVer) GreaterThan(other *ServiceTagWithSemVer) bool {
-	return s.version.GreaterThan(other.version)
+	return s.Version.GreaterThan(other.Version)
 }
 func (s *ServiceTagWithSemVer) LessThan(other *ServiceTagWithSemVer) bool {
-	return s.version.LessThan(other.version)
+	return s.Version.LessThan(other.Version)
 }
 func (s *ServiceTagWithSemVer) Equal(other *ServiceTagWithSemVer) bool {
-	return s.version.Equal(other.version)
+	return s.Version.Equal(other.Version)
 }
 
 type SemVer struct {
-	major int
-	minor int
-	patch int
+	Major int
+	Minor int
+	Patch int
 }
 
 func FromStr(s string) (SemVer, error) {
@@ -73,68 +69,68 @@ func FromStr(s string) (SemVer, error) {
 }
 func NewSemVer(major, minor, patch int) SemVer {
 	return SemVer{
-		major: major,
-		minor: minor,
-		patch: patch,
+		Major: major,
+		Minor: minor,
+		Patch: patch,
 	}
 }
 
 func (s SemVer) GreaterThan(other SemVer) bool {
-	if s.major > other.major {
+	if s.Major > other.Major {
 		return true
 	}
-	if s.major == other.major && s.minor > other.minor {
+	if s.Major == other.Major && s.Minor > other.Minor {
 		return true
 	}
-	if s.major == other.major && s.minor == other.minor && s.patch > other.patch {
+	if s.Major == other.Major && s.Minor == other.Minor && s.Patch > other.Patch {
 		return true
 	}
 	return false
 }
 
 func (s SemVer) LessThan(other SemVer) bool {
-	if s.major < other.major {
+	if s.Major < other.Major {
 		return true
 	}
-	if s.major == other.major && s.minor < other.minor {
+	if s.Major == other.Major && s.Minor < other.Minor {
 		return true
 	}
-	if s.major == other.major && s.minor == other.minor && s.patch < other.patch {
+	if s.Major == other.Major && s.Minor == other.Minor && s.Patch < other.Patch {
 		return true
 	}
 	return false
 }
 
 func (s SemVer) Equal(other SemVer) bool {
-	return s.major == other.major && s.minor == other.minor && s.patch == other.patch
+	return s.Major == other.Major && s.Minor == other.Minor && s.Patch == other.Patch
 }
 
 func (s SemVer) MajorUp() SemVer {
 	return SemVer{
-		major: s.major + 1,
-		minor: 0,
-		patch: 0,
+		Major: s.Major + 1,
+		Minor: 0,
+		Patch: 0,
 	}
 }
 
 func (s SemVer) MinorUp() SemVer {
 	return SemVer{
-		major: s.major,
-		minor: s.minor + 1,
-		patch: 0,
+		Major: s.Major,
+		Minor: s.Minor + 1,
+		Patch: 0,
 	}
 }
 
 func (s SemVer) PatchUp() SemVer {
 	return SemVer{
-		major: s.major,
-		minor: s.minor,
-		patch: s.patch + 1,
+		Major: s.Major,
+		Minor: s.Minor,
+		Patch: s.Patch + 1,
 	}
 }
 
 func (s *SemVer) String() string {
-	return fmt.Sprintf("v%d.%d.%d", s.major, s.minor, s.patch)
+	return fmt.Sprintf("v%d.%d.%d", s.Major, s.Minor, s.Patch)
 }
 
 var (
@@ -143,7 +139,7 @@ var (
 )
 
 func errInvalidServiceSemVerMsg(invalid string) error {
-	return fmt.Errorf("invalid service semver string: %s\nservice version should be SERVICE_NAME-vMAJOR.MINOR.PATCH", invalid)
+	return fmt.Errorf("invalid service semver string: %s\nservice Version should be SERVICE_NAME-vMAJOR.MINOR.PATCH", invalid)
 }
 
 func (g GitTag) ToServiceTag() (*ServiceTagWithSemVer, error) {
@@ -154,17 +150,17 @@ func (g GitTag) ToServiceTag() (*ServiceTagWithSemVer, error) {
 		if len(matches) != 5 {
 			return nil, errInvalidServiceSemVerMsg(g.String())
 		}
-		// without v version
+		// without v Version
 		semVerStr = ""
 	}
 
 	service := matches[1]
-	version, err := FromStr(fmt.Sprintf("%s%s.%s.%s", semVerStr, matches[2], matches[3], matches[4]))
+	Version, err := FromStr(fmt.Sprintf("%s%s.%s.%s", semVerStr, matches[2], matches[3], matches[4]))
 	if err != nil {
 		return nil, errInvalidServiceSemVerMsg(g.String())
 	}
 
-	return NewServiceTagWithSemVer(ServiceName(service), version), nil
+	return NewServiceTagWithSemVer(ServiceName(service), Version), nil
 }
 
 func FilterServiceTags(tags *[]GitTag) *[]*ServiceTagWithSemVer {
@@ -187,26 +183,26 @@ func FilterServiceTags(tags *[]GitTag) *[]*ServiceTagWithSemVer {
 type VersionUpServiceTag func(*[]GitTag) *[]*ServiceTagWithSemVer
 
 func MajorUpAll(tags *[]GitTag) *[]*ServiceTagWithSemVer {
-	return versionUpAll(func(tag *ServiceTagWithSemVer) {
+	return VersionUpAll(func(tag *ServiceTagWithSemVer) {
 		tag.UpdateMajor()
 	})(tags)
 }
 
 func MinorUpAll(tags *[]GitTag) *[]*ServiceTagWithSemVer {
-	return versionUpAll(func(tag *ServiceTagWithSemVer) {
+	return VersionUpAll(func(tag *ServiceTagWithSemVer) {
 		tag.UpdateMinor()
 	})(tags)
 }
 
 func PatchUpAll(tags *[]GitTag) *[]*ServiceTagWithSemVer {
-	return versionUpAll(func(tag *ServiceTagWithSemVer) {
+	return VersionUpAll(func(tag *ServiceTagWithSemVer) {
 		tag.UpdatePatch()
 	})(tags)
 }
 
-type versionUpFunc func(*ServiceTagWithSemVer)
+type VersionUpFunc func(*ServiceTagWithSemVer)
 
-func versionUpAll(f versionUpFunc) VersionUpServiceTag {
+func VersionUpAll(f VersionUpFunc) VersionUpServiceTag {
 	return func(tags *[]GitTag) *[]*ServiceTagWithSemVer {
 		serviceTags := []*ServiceTagWithSemVer{}
 		if tags == nil || len(*tags) == 0 {
@@ -221,16 +217,16 @@ func versionUpAll(f versionUpFunc) VersionUpServiceTag {
 				continue
 			}
 			f(serviceTag)
-			if version, ok := tmpAlreadyUpdatedServiceTags[serviceTag.Service()]; ok {
-				if serviceTag.LessThan(version) || serviceTag.Equal(version) {
+			if Version, ok := tmpAlreadyUpdatedServiceTags[serviceTag.Service]; ok {
+				if serviceTag.LessThan(Version) || serviceTag.Equal(Version) {
 					continue
 				}
-				if serviceTag.GreaterThan(version) {
-					tmpAlreadyUpdatedServiceTags[serviceTag.Service()] = serviceTag
+				if serviceTag.GreaterThan(Version) {
+					tmpAlreadyUpdatedServiceTags[serviceTag.Service] = serviceTag
 					continue
 				}
 			}
-			tmpAlreadyUpdatedServiceTags[serviceTag.Service()] = serviceTag
+			tmpAlreadyUpdatedServiceTags[serviceTag.Service] = serviceTag
 		}
 
 		for _, serviceTag := range tmpAlreadyUpdatedServiceTags {

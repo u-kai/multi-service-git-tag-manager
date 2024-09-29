@@ -6,7 +6,7 @@ import (
 )
 
 type CommitTagGetter struct {
-	GitCommandExecutor gitCommandExecutor
+	GitCommandExecutor GitCommandExecutor
 }
 
 func (c *CommitTagGetter) Execute(query usecase.GetCommitTagQuery) (*[]domain.GitTag, error) {

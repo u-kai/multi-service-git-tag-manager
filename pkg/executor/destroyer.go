@@ -5,23 +5,9 @@ import (
 	"msgtm/pkg/usecase"
 )
 
-type DestroyDecorator struct {
-	Clients []usecase.DestroyServiceTags
-}
-
-func (d *DestroyDecorator) Execute(cmd usecase.DestroyServiceTagsCommand) error {
-	for _, client := range d.Clients {
-		err := client.Execute(cmd)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 type LocalServiceTagsDestroyer struct {
 	Force              bool
-	GitCommandExecutor gitCommandExecutor
+	GitCommandExecutor GitCommandExecutor
 }
 
 func (s *LocalServiceTagsDestroyer) Execute(cmd usecase.DestroyServiceTagsCommand) error {
@@ -37,7 +23,7 @@ func (s *LocalServiceTagsDestroyer) Execute(cmd usecase.DestroyServiceTagsComman
 type RemoteServiceTagsDestroyer struct {
 	Force              bool
 	Remote             *domain.RemoteAddr
-	GitCommandExecutor gitCommandExecutor
+	GitCommandExecutor GitCommandExecutor
 }
 
 func (r *RemoteServiceTagsDestroyer) Execute(cmd usecase.DestroyServiceTagsCommand) error {

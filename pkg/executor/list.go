@@ -6,7 +6,7 @@ import (
 )
 
 type GitTagList struct {
-	GitCommandExecutor gitCommandExecutor
+	GitCommandExecutor GitCommandExecutor
 }
 
 func (f *GitTagList) Execute(cmd usecase.ListTagsQuery) (*[]domain.GitTag, error) {
