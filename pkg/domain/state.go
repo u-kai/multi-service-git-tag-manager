@@ -88,7 +88,7 @@ func (s *WritedState) Write(writer io.Writer, format WriteFormat) error {
 		}
 		return nil
 	case YAML:
-		b, err := s.MarshalYAML()
+		b, err := yaml.Marshal(s)
 		if err != nil {
 			return err
 		}
@@ -119,7 +119,7 @@ func FromReader(reader io.Reader, format WriteFormat) (*WritedState, error) {
 		return state, nil
 	case YAML:
 		state := &WritedState{}
-		err = state.UnmarshalYAML(b)
+		err = yaml.Unmarshal(b, state)
 		if err != nil {
 			return nil, err
 		}
@@ -159,52 +159,74 @@ func (s *WritedState) UnmarshalJSON(b []byte) error {
 		return err
 	}
 	return s.fromMarshaled(m)
+
 }
-func (s *WritedState) UnmarshalYAML(b []byte) error {
-	m := marshaledState{}
-	err := yaml.Unmarshal(b, &m)
-	if err != nil {
+
+func (s *WritedState) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	tmp := marshaledState{}
+	if err := unmarshal(&tmp); err != nil {
 		return err
 	}
-	return s.fromMarshaled(m)
+	return s.fromMarshaled(tmp)
 }
 
 func (s *WritedState) fromMarshaled(m marshaledState) error {
-	states := make([]*ServiceTagState, len(m.Services))
-	for i, service := range m.Services {
+	states := make([]*ServiceTagState, 0, len(m.Services))
+	for _, service := range m.Services {
 		name := ServiceName(service.Name)
-		states[i] = &ServiceTagState{
-			ServiceName: &name,
+		if service.Latest == nil && service.Prev == nil {
+			states = append(states, InitServiceTagState(&name))
+			continue
 		}
 		if service.Latest != nil {
-			name := ServiceName(service.Name)
 			version, err := FromStr(service.Latest.Tag.Version)
 			if err != nil {
 				return err
 			}
 			serviceTag := NewServiceTagWithSemVer(name, version)
 			commitId := CommitId(service.Latest.CommitId)
-			states[i].Latest = &ServiceTagInfo{
-				Tag:           serviceTag,
-				CommitId:      &commitId,
-				Description:   &service.Latest.Description,
-				CommitComment: &service.Latest.CommitComment,
+			var description *string = nil
+			if service.Latest.Description != "" {
+				description = &service.Latest.Description
 			}
+			var commitComment *string = nil
+			if service.Latest.CommitComment != "" {
+				commitComment = &service.Latest.CommitComment
+			}
+			state := InitServiceTagState(&name)
+			state.UpdateLatest(
+				&ServiceTagInfo{
+					Tag:           serviceTag,
+					CommitId:      &commitId,
+					Description:   description,
+					CommitComment: commitComment,
+				},
+			)
+			states = append(states, state)
 		}
 		if service.Prev != nil {
-			name := ServiceName(service.Name)
 			version, err := FromStr(service.Prev.Tag.Version)
 			if err != nil {
 				return err
 			}
 			serviceTag := NewServiceTagWithSemVer(name, version)
 			commitId := CommitId(service.Prev.CommitId)
-			states[i].Prev = &ServiceTagInfo{
+			state := InitServiceTagState(&name)
+			var description *string = nil
+			if service.Prev.Description != "" {
+				description = &service.Prev.Description
+			}
+			var commitComment *string = nil
+			if service.Prev.CommitComment != "" {
+				commitComment = &service.Prev.CommitComment
+			}
+			state.Prev = &ServiceTagInfo{
 				Tag:           serviceTag,
 				CommitId:      &commitId,
-				Description:   &service.Prev.Description,
-				CommitComment: &service.Prev.CommitComment,
+				Description:   description,
+				CommitComment: commitComment,
 			}
+			states = append(states, state)
 		}
 	}
 	s.ServiceTagStates = states

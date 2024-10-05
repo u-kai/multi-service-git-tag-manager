@@ -20,22 +20,26 @@ func TagAddCommand(register usecase.RegisterServiceTags) SubCommand[TagAddComman
 		if err != nil {
 			return fmt.Errorf("failed to parse version: %w", err)
 		}
+		serviceNames := []domain.ServiceName{}
 		if param.FromConfigFile != "" {
 			// read from config file
-			content, err := os.ReadFile(param.FromConfigFile)
+			file, err := os.Open(param.FromConfigFile)
 			if err != nil {
 				return fmt.Errorf("failed to read config file: %w", err)
 			}
-			// TODO
-			println(content)
+			state, err := domain.FromReader(file, domain.YAML)
+			for _, service := range state.ServiceTagStates {
+				serviceNames = append(serviceNames, *service.ServiceName)
+			}
+		} else {
+			for _, service := range param.Services {
+				serviceNames = append(serviceNames, domain.ServiceName(service))
+			}
 		}
+
 		commitId := domain.HEAD
 		if param.CommitId != "" {
 			commitId = domain.CommitId(param.CommitId)
-		}
-		serviceNames := []domain.ServiceName{}
-		for _, service := range param.Services {
-			serviceNames = append(serviceNames, domain.ServiceName(service))
 		}
 		err = usecase.CreateServiceTags(
 			register,

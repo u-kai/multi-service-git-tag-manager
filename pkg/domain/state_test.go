@@ -5,6 +5,8 @@ import (
 	"msgtm/pkg/domain"
 	"reflect"
 	"testing"
+
+	"gopkg.in/yaml.v2"
 )
 
 func newServiceName(name string) *domain.ServiceName {
@@ -18,6 +20,73 @@ func newCommitId(id string) *domain.CommitId {
 func newPtrString(s string) *string {
 	return &s
 }
+
+func TestUnmarshal(t *testing.T) {
+	tests := []struct {
+		name string
+		data []byte
+		want domain.WritedState
+	}{
+		{
+			name: "valid init service",
+			data: []byte(
+				`
+services:      
+    - name: test
+      latest: null
+      prev: null`),
+			want: domain.WritedState{
+				ServiceTagStates: []*domain.ServiceTagState{
+					{
+						ServiceName: newServiceName("test"),
+						Latest:      nil,
+						Prev:        nil,
+					},
+				},
+			},
+		},
+		{
+			name: "valid service has latest",
+			data: []byte(
+				`
+services:
+    - name: test
+      latest:
+         tag: 
+            version: v1.0.0
+         commitId: commit1
+      prev: null`),
+			want: domain.WritedState{
+				ServiceTagStates: []*domain.ServiceTagState{
+					{
+						ServiceName: newServiceName("test"),
+						Latest: &domain.ServiceTagInfo{
+							Tag:      domain.NewServiceTagWithSemVer(*newServiceName("test"), domain.SemVer{Major: 1, Minor: 0, Patch: 0}),
+							CommitId: newCommitId("commit1"),
+						},
+						Prev: nil,
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got domain.WritedState
+			err := yaml.Unmarshal(tt.data, &got)
+			if err != nil {
+				t.Errorf("failed to unmarshal: %v", err)
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				jsonGot, _ := json.Marshal(got)
+				jsonWant, _ := json.Marshal(tt.want)
+				t.Errorf("got: %s, want: %s", jsonGot, jsonWant)
+			}
+		})
+	}
+}
+
 func TestUpdate(t *testing.T) {
 	tests := []struct {
 		name        string
