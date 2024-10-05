@@ -1,26 +1,4 @@
 services:
-  - name: test
-    latest:
-      tag:
-        service: test
-        version:
-          major: 0
-          minor: 0
-          patch: 0
-      commitId: 2ea2b22ba3435ce2b30708e90629a4590cd9a684
-      description: null
-      commitComment: null
-    prev: null
-services:
 - name: test
-  latest:
-    tag:
-      service: test
-      version:
-        major: 0
-        minor: 0
-        patch: 0
-    commitId: 2ea2b22ba3435ce2b30708e90629a4590cd9a684
-    description: null
-    commitComment: null
+  latest: null
   prev: null

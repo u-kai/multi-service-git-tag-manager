@@ -88,7 +88,7 @@ func (s *WritedState) Write(writer io.Writer, format WriteFormat) error {
 		}
 		return nil
 	case YAML:
-		b, err := yaml.Marshal(s)
+		b, err := s.MarshalYAML()
 		if err != nil {
 			return err
 		}
@@ -119,11 +119,133 @@ func FromReader(reader io.Reader, format WriteFormat) (*WritedState, error) {
 		return state, nil
 	case YAML:
 		state := &WritedState{}
-		err = yaml.Unmarshal(b, state)
+		err = state.UnmarshalYAML(b)
 		if err != nil {
 			return nil, err
 		}
 		return state, nil
 	}
 	return nil, fmt.Errorf("unsupported format: %v", format)
+}
+
+type marshaledState struct {
+	Services []struct {
+		Name   string                    `json:"name" yaml:"name"`
+		Latest *marshaledServiceTagState `json:"latest" yaml:"latest"`
+		Prev   *marshaledServiceTagState `json:"prev" yaml:"prev"`
+	} `json:"services" yaml:"services"`
+}
+
+type marshaledServiceTagState struct {
+	Tag struct {
+		Version string `json:"version" yaml:"version"`
+	} `json:"tag" yaml:"tag"`
+	CommitId      string `json:"commitId" yaml:"commitId"`
+	Description   string `json:"description" yaml:"description"`
+	CommitComment string `json:"commitComment" yaml:"commitComment"`
+}
+
+func (s *WritedState) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.toMarshaled())
+}
+func (s *WritedState) MarshalYAML() ([]byte, error) {
+	return yaml.Marshal(s.toMarshaled())
+}
+
+func (s *WritedState) UnmarshalJSON(b []byte) error {
+	m := marshaledState{}
+	err := json.Unmarshal(b, &m)
+	if err != nil {
+		return err
+	}
+	return s.fromMarshaled(m)
+}
+func (s *WritedState) UnmarshalYAML(b []byte) error {
+	m := marshaledState{}
+	err := yaml.Unmarshal(b, &m)
+	if err != nil {
+		return err
+	}
+	return s.fromMarshaled(m)
+}
+
+func (s *WritedState) fromMarshaled(m marshaledState) error {
+	states := make([]*ServiceTagState, len(m.Services))
+	for i, service := range m.Services {
+		name := ServiceName(service.Name)
+		states[i] = &ServiceTagState{
+			ServiceName: &name,
+		}
+		if service.Latest != nil {
+			name := ServiceName(service.Name)
+			version, err := FromStr(service.Latest.Tag.Version)
+			if err != nil {
+				return err
+			}
+			serviceTag := NewServiceTagWithSemVer(name, version)
+			commitId := CommitId(service.Latest.CommitId)
+			states[i].Latest = &ServiceTagInfo{
+				Tag:           serviceTag,
+				CommitId:      &commitId,
+				Description:   &service.Latest.Description,
+				CommitComment: &service.Latest.CommitComment,
+			}
+		}
+		if service.Prev != nil {
+			name := ServiceName(service.Name)
+			version, err := FromStr(service.Prev.Tag.Version)
+			if err != nil {
+				return err
+			}
+			serviceTag := NewServiceTagWithSemVer(name, version)
+			commitId := CommitId(service.Prev.CommitId)
+			states[i].Prev = &ServiceTagInfo{
+				Tag:           serviceTag,
+				CommitId:      &commitId,
+				Description:   &service.Prev.Description,
+				CommitComment: &service.Prev.CommitComment,
+			}
+		}
+	}
+	s.ServiceTagStates = states
+	return nil
+}
+
+func (s *WritedState) toMarshaled() marshaledState {
+	services := make([]struct {
+		Name   string                    `json:"name" yaml:"name"`
+		Latest *marshaledServiceTagState `json:"latest" yaml:"latest"`
+		Prev   *marshaledServiceTagState `json:"prev" yaml:"prev"`
+	}, len(s.ServiceTagStates))
+	m := marshaledState{
+		Services: services,
+	}
+	for i, state := range s.ServiceTagStates {
+		m.Services[i].Name = state.ServiceName.String()
+		if state.Latest != nil {
+			m.Services[i].Latest = &marshaledServiceTagState{
+				Tag: struct {
+					Version string `json:"version" yaml:"version"`
+				}{
+					Version: state.Latest.Tag.String(),
+				},
+				CommitId:      state.Latest.CommitId.String(),
+				Description:   *state.Latest.Description,
+				CommitComment: *state.Latest.CommitComment,
+			}
+		}
+		if state.Prev != nil {
+			m.Services[i].Prev = &marshaledServiceTagState{
+				Tag: struct {
+					Version string `json:"version" yaml:"version"`
+				}{
+					Version: state.Prev.Tag.String(),
+				},
+				CommitId:      state.Prev.CommitId.String(),
+				Description:   *state.Prev.Description,
+				CommitComment: *state.Prev.CommitComment,
+			}
+		}
+	}
+	return m
 }

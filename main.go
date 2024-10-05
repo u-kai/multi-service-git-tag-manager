@@ -84,7 +84,7 @@ func main() {
 	rootCmd.AddCommand(tagVersionUpCmd(logger, list, register, getter, finder))
 	rootCmd.AddCommand(tagResetCmd(logger, getter, localDestroyer, remoteDestroyer, list, finder))
 	rootCmd.AddCommand(tagsPushCmd(logger, getter, pusher))
-	rootCmd.AddCommand(syncAllCmd(logger, list, finder))
+	rootCmd.AddCommand(syncAllCmd(list, finder))
 	rootCmd.AddCommand(initCmd(logger))
 
 	if err := rootCmd.Execute(); err != nil {
@@ -149,7 +149,7 @@ func addSyncAll(
 		sync, _ := cmd.Flags().GetBool("sync")
 		fileName, _ := cmd.Flags().GetString("state-file")
 		if sync {
-			file, err := os.OpenFile(fileName, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModePerm)
+			file, err := os.OpenFile(fileName, os.O_WRONLY, os.ModePerm)
 			if err != nil {
 				fmt.Printf("Failed to open file: %s\n", err.Error())
 				return
@@ -168,7 +168,7 @@ func addSyncAll(
 	}
 }
 
-func syncAllCmd(logger *slog.Logger, list usecase.ListTags, finder usecase.CommitFinder) *cobra.Command {
+func syncAllCmd(list usecase.ListTags, finder usecase.CommitFinder) *cobra.Command {
 	f := addSyncAll(func(_ *cobra.Command, _ []string) {}, list, finder)
 	syncAllCmd := &cobra.Command{
 		Use:   "sync",
@@ -281,9 +281,11 @@ func tagResetCmd(logger *slog.Logger, getter usecase.CommitTagGetter, localDestr
 	f := func(cmd *cobra.Command, args []string) {
 		origin, _ := cmd.Flags().GetBool("origin")
 		excludeLocal, _ := cmd.Flags().GetBool("exclude-local")
+		commitIdStr, _ := cmd.Flags().GetString("commit-id")
 		param := subcmd.ResetCommandParameter{
 			Origin:       origin,
 			ExcludeLocal: excludeLocal,
+			CommitId:     commitIdStr,
 		}
 		if len(args) > 0 {
 			param.CommitId = args[0]
@@ -305,6 +307,7 @@ func tagResetCmd(logger *slog.Logger, getter usecase.CommitTagGetter, localDestr
 	tagResetCmd.Flags().BoolP("origin", "o", false, "Reset origin")
 	tagResetCmd.Flags().BoolP("exclude-local", "e", false, "Exclude local")
 	tagResetCmd.Flags().StringP("state-file", "f", "services-state.yaml", "State file")
+	tagResetCmd.Flags().StringP("commit-id", "c", "", "Commit ID")
 	tagResetCmd.Flags().BoolP("sync", "y", false, "Sync all service tags")
 	return tagResetCmd
 }
