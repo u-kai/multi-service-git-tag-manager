@@ -69,6 +69,40 @@ services:
 				},
 			},
 		},
+		{
+			name: "valid service has prev",
+			data: []byte(
+				`
+services:
+    - name: test
+      latest:
+        tag:
+            version: v1.0.0
+        commitId: commit1
+        description: test
+        commitComment: test
+      prev:
+        tag:
+            version: v0.9.0
+        commitId: commit0`),
+			want: domain.WritedState{
+				ServiceTagStates: []*domain.ServiceTagState{
+					{
+						ServiceName: newServiceName("test"),
+						Latest: &domain.ServiceTagInfo{
+							Tag:           domain.NewServiceTagWithSemVer(*newServiceName("test"), domain.SemVer{Major: 1, Minor: 0, Patch: 0}),
+							CommitId:      newCommitId("commit1"),
+							Description:   newPtrString("test"),
+							CommitComment: newPtrString("test"),
+						},
+						Prev: &domain.ServiceTagInfo{
+							Tag:      domain.NewServiceTagWithSemVer(*newServiceName("test"), domain.SemVer{Major: 0, Minor: 9, Patch: 0}),
+							CommitId: newCommitId("commit0"),
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tests {

@@ -174,10 +174,7 @@ func (s *WritedState) fromMarshaled(m marshaledState) error {
 	states := make([]*ServiceTagState, 0, len(m.Services))
 	for _, service := range m.Services {
 		name := ServiceName(service.Name)
-		if service.Latest == nil && service.Prev == nil {
-			states = append(states, InitServiceTagState(&name))
-			continue
-		}
+		state := InitServiceTagState(&name)
 		if service.Latest != nil {
 			version, err := FromStr(service.Latest.Tag.Version)
 			if err != nil {
@@ -193,7 +190,6 @@ func (s *WritedState) fromMarshaled(m marshaledState) error {
 			if service.Latest.CommitComment != "" {
 				commitComment = &service.Latest.CommitComment
 			}
-			state := InitServiceTagState(&name)
 			state.UpdateLatest(
 				&ServiceTagInfo{
 					Tag:           serviceTag,
@@ -202,7 +198,6 @@ func (s *WritedState) fromMarshaled(m marshaledState) error {
 					CommitComment: commitComment,
 				},
 			)
-			states = append(states, state)
 		}
 		if service.Prev != nil {
 			version, err := FromStr(service.Prev.Tag.Version)
@@ -211,7 +206,6 @@ func (s *WritedState) fromMarshaled(m marshaledState) error {
 			}
 			serviceTag := NewServiceTagWithSemVer(name, version)
 			commitId := CommitId(service.Prev.CommitId)
-			state := InitServiceTagState(&name)
 			var description *string = nil
 			if service.Prev.Description != "" {
 				description = &service.Prev.Description
@@ -226,8 +220,8 @@ func (s *WritedState) fromMarshaled(m marshaledState) error {
 				Description:   description,
 				CommitComment: commitComment,
 			}
-			states = append(states, state)
 		}
+		states = append(states, state)
 	}
 	s.ServiceTagStates = states
 	return nil
