@@ -9,12 +9,16 @@ func VersionUpAllServiceTags(
 	commitId *domain.CommitId,
 	excludeServiceNames ...*domain.ServiceName,
 ) error {
-	filter := make([]*domain.ServiceName, 0, len(excludeServiceNames))
-	for _, name := range excludeServiceNames {
-		filter = append(filter, name)
+	f := func(s *domain.ServiceName) bool {
+		for _, name := range excludeServiceNames {
+			if *name == *s {
+				return false
+			}
+		}
+		return true
 	}
 	tags, err := list.Execute(ListTagsQuery{
-		Filter: &filter,
+		Filter: f,
 	})
 	if err != nil {
 		return err

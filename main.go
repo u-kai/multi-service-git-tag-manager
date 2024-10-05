@@ -21,7 +21,7 @@ const HEAD CommitId = "HEAD"
 
 func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
+		Level: slog.LevelInfo,
 	}))
 
 	gitExecutor := executor.LogDecorateToExecutor(
@@ -175,7 +175,7 @@ func syncAllCmd(list usecase.ListTags, finder usecase.CommitFinder) *cobra.Comma
 		Short: "sync is a tool for multi service git tag manager",
 		Run:   f,
 	}
-	syncAllCmd.Flags().BoolP("sync", "y", true, "Sync all service tags")
+	syncAllCmd.Flags().Bool("sync", true, "Sync all service tags")
 	syncAllCmd.Flags().StringP("state-file", "t", "services-state.yaml", "State file")
 	return syncAllCmd
 }
@@ -184,11 +184,13 @@ func listCmd(logger *slog.Logger, list usecase.ListTags, finder usecase.CommitFi
 	f := func(list usecase.ListTags, finder usecase.CommitFinder) CobraCmdRunner {
 		return func(cmd *cobra.Command, args []string) {
 			services, _ := cmd.Flags().GetStringSlice("services")
+			isAll, _ := cmd.Flags().GetBool("isAll")
 			err := subcmd.LogSubCommandDecorator(
 				subcmd.ServiceTagsListCommand(list, finder),
 				logger,
 			)(subcmd.ServiceTagsListParameter{
 				Filter: services,
+				IsAll:  isAll,
 			})
 			if err != nil {
 				fmt.Printf("Failed to list service tags: %s\n", err.Error())
@@ -202,6 +204,7 @@ func listCmd(logger *slog.Logger, list usecase.ListTags, finder usecase.CommitFi
 		Run:   f(list, finder),
 	}
 	serviceTagsListCmd.Flags().StringSliceP("services", "s", []string{}, "services")
+	serviceTagsListCmd.Flags().Bool("isAll", true, "List all service tags")
 	return serviceTagsListCmd
 }
 
@@ -243,7 +246,7 @@ func tagAddCmd(logger *slog.Logger, register usecase.RegisterServiceTags, list u
 	tagAddCmd.Flags().StringP("commit-id", "c", "", "Commit ID")
 	tagAddCmd.Flags().StringSliceP("services", "s", []string{}, "Add of services")
 	tagAddCmd.Flags().StringP("from-config-file", "f", "", "Add of services from config file")
-	tagAddCmd.Flags().BoolP("sync", "y", false, "Sync all service tags")
+	tagAddCmd.Flags().Bool("sync", true, "Sync all service tags")
 	tagAddCmd.Flags().StringP("state-file", "t", "services-state.yaml", "State file")
 	return tagAddCmd
 }
@@ -308,7 +311,7 @@ func tagResetCmd(logger *slog.Logger, getter usecase.CommitTagGetter, localDestr
 	tagResetCmd.Flags().BoolP("exclude-local", "e", false, "Exclude local")
 	tagResetCmd.Flags().StringP("state-file", "f", "services-state.yaml", "State file")
 	tagResetCmd.Flags().StringP("commit-id", "c", "", "Commit ID")
-	tagResetCmd.Flags().BoolP("sync", "y", false, "Sync all service tags")
+	tagResetCmd.Flags().Bool("sync", true, "Sync all service tags")
 	return tagResetCmd
 }
 
@@ -352,7 +355,7 @@ func tagVersionUpCmd(logger *slog.Logger, list usecase.ListTags, register usecas
 	tagVersionUpCmd.Flags().BoolP("all", "a", false, "Tag all services")
 	tagVersionUpCmd.Flags().StringP("commit-id", "c", "", "Commit ID")
 	tagVersionUpCmd.Flags().StringSliceP("services", "s", []string{}, "List of services")
-	tagVersionUpCmd.Flags().BoolP("sync", "y", false, "Sync all service tags")
+	tagVersionUpCmd.Flags().Bool("sync", true, "Sync all service tags")
 	tagVersionUpCmd.Flags().StringP("state-file", "t", "services-state.yaml", "State file")
 	return tagVersionUpCmd
 }

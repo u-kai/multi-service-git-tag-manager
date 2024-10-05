@@ -25,7 +25,7 @@ type DestroyServiceTagsCommand struct {
 // CommitGetter is a usecase that gets the tags of the specified commit.
 type ListTags = QueryExecutor[ListTagsQuery, *[]domain.GitTag]
 type ListTagsQuery struct {
-	Filter *[]*domain.ServiceName
+	Filter func(*domain.ServiceName) bool
 }
 
 // CommitGetter is a usecase that gets the tags of the specified commit.

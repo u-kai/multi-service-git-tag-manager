@@ -8,16 +8,25 @@ import (
 
 type ServiceTagsListParameter struct {
 	Filter []string
+	IsAll  bool
 }
 
 func ServiceTagsListCommand(list usecase.ListTags, finder usecase.CommitFinder) SubCommand[ServiceTagsListParameter] {
 	return func(param ServiceTagsListParameter) error {
-		serviceNames := make([]*domain.ServiceName, 0, len(param.Filter))
-		for _, name := range param.Filter {
-			service := domain.ServiceName(name)
-			serviceNames = append(serviceNames, &service)
+		f := func(s *domain.ServiceName) bool {
+			for _, filter := range param.Filter {
+				if filter == s.String() {
+					return true
+				}
+			}
+			return false
 		}
-		infos, err := usecase.ServiceTagsList(&serviceNames, list, finder)
+		if param.IsAll {
+			f = func(s *domain.ServiceName) bool {
+				return true
+			}
+		}
+		infos, err := usecase.ServiceTagsList(f, list, finder)
 		if err != nil {
 			return fmt.Errorf("failed to list service tags: %w", err)
 		}

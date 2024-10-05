@@ -7,7 +7,7 @@ type ServiceTagInfo struct {
 	CommitId *domain.CommitId
 }
 
-func ServiceTagsList(filter *[]*domain.ServiceName, list ListTags, finder CommitFinder) ([]*ServiceTagInfo, error) {
+func ServiceTagsList(filter func(*domain.ServiceName) bool, list ListTags, finder CommitFinder) ([]*ServiceTagInfo, error) {
 	tags, err := list.Execute(ListTagsQuery{Filter: filter})
 	if err != nil {
 		return nil, err
