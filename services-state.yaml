@@ -1,4 +1,4 @@
 services:
-- name: test
-  latest: null
-  prev: null
+  - name: test
+    latest: null
+    prev: null

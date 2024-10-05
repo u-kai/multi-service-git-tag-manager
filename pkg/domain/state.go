@@ -140,16 +140,17 @@ type marshaledServiceTagState struct {
 	Tag struct {
 		Version string `json:"version" yaml:"version"`
 	} `json:"tag" yaml:"tag"`
-	CommitId      string `json:"commitId" yaml:"commitId"`
-	Description   string `json:"description" yaml:"description"`
-	CommitComment string `json:"commitComment" yaml:"commitComment"`
+	CommitId      string  `json:"commitId" yaml:"commitId"`
+	Description   *string `json:"description" yaml:"description"`
+	CommitComment *string `json:"commitComment" yaml:"commitComment"`
 }
 
 func (s *WritedState) MarshalJSON() ([]byte, error) {
 	return json.Marshal(s.toMarshaled())
 }
-func (s *WritedState) MarshalYAML() ([]byte, error) {
-	return yaml.Marshal(s.toMarshaled())
+func (s WritedState) MarshalYAML() (interface{}, error) {
+	result := s.toMarshaled()
+	return result, nil
 }
 
 func (s *WritedState) UnmarshalJSON(b []byte) error {
@@ -183,12 +184,12 @@ func (s *WritedState) fromMarshaled(m marshaledState) error {
 			serviceTag := NewServiceTagWithSemVer(name, version)
 			commitId := CommitId(service.Latest.CommitId)
 			var description *string = nil
-			if service.Latest.Description != "" {
-				description = &service.Latest.Description
+			if service.Latest.Description != nil && *service.Latest.Description != "" {
+				description = service.Latest.Description
 			}
 			var commitComment *string = nil
-			if service.Latest.CommitComment != "" {
-				commitComment = &service.Latest.CommitComment
+			if service.Latest.CommitComment != nil && *service.Latest.CommitComment != "" {
+				commitComment = service.Latest.CommitComment
 			}
 			state.UpdateLatest(
 				&ServiceTagInfo{
@@ -207,12 +208,12 @@ func (s *WritedState) fromMarshaled(m marshaledState) error {
 			serviceTag := NewServiceTagWithSemVer(name, version)
 			commitId := CommitId(service.Prev.CommitId)
 			var description *string = nil
-			if service.Prev.Description != "" {
-				description = &service.Prev.Description
+			if service.Prev.Description != nil && *service.Prev.Description != "" {
+				description = service.Prev.Description
 			}
 			var commitComment *string = nil
-			if service.Prev.CommitComment != "" {
-				commitComment = &service.Prev.CommitComment
+			if service.Prev.CommitComment != nil && *service.Prev.CommitComment != "" {
+				commitComment = service.Prev.CommitComment
 			}
 			state.Prev = &ServiceTagInfo{
 				Tag:           serviceTag,
@@ -232,36 +233,62 @@ func (s *WritedState) toMarshaled() marshaledState {
 		Name   string                    `json:"name" yaml:"name"`
 		Latest *marshaledServiceTagState `json:"latest" yaml:"latest"`
 		Prev   *marshaledServiceTagState `json:"prev" yaml:"prev"`
-	}, len(s.ServiceTagStates))
+	}, 0, len(s.ServiceTagStates))
 	m := marshaledState{
 		Services: services,
 	}
-	for i, state := range s.ServiceTagStates {
-		m.Services[i].Name = state.ServiceName.String()
+	for _, state := range s.ServiceTagStates {
+		service := struct {
+			Name   string                    `json:"name" yaml:"name"`
+			Latest *marshaledServiceTagState `json:"latest" yaml:"latest"`
+			Prev   *marshaledServiceTagState `json:"prev" yaml:"prev"`
+		}{
+			Name: state.ServiceName.String(),
+		}
+
 		if state.Latest != nil {
-			m.Services[i].Latest = &marshaledServiceTagState{
+			var description *string = nil
+			if state.Latest.Description != nil && *state.Latest.Description != "" {
+				description = state.Latest.Description
+			}
+			var commitComment *string = nil
+			if state.Latest.CommitComment != nil && *state.Latest.CommitComment != "" {
+				commitComment = state.Latest.CommitComment
+			}
+
+			service.Latest = &marshaledServiceTagState{
 				Tag: struct {
 					Version string `json:"version" yaml:"version"`
 				}{
-					Version: state.Latest.Tag.String(),
+					Version: state.Latest.Tag.Version.String(),
 				},
 				CommitId:      state.Latest.CommitId.String(),
-				Description:   *state.Latest.Description,
-				CommitComment: *state.Latest.CommitComment,
+				Description:   description,
+				CommitComment: commitComment,
 			}
 		}
 		if state.Prev != nil {
-			m.Services[i].Prev = &marshaledServiceTagState{
+			var description *string = nil
+			if state.Prev.Description != nil && *state.Prev.Description != "" {
+				description = state.Prev.Description
+			}
+			var commitComment *string = nil
+			if state.Prev.CommitComment != nil && *state.Prev.CommitComment != "" {
+				commitComment = state.Prev.CommitComment
+			}
+
+			service.Prev = &marshaledServiceTagState{
 				Tag: struct {
 					Version string `json:"version" yaml:"version"`
 				}{
-					Version: state.Prev.Tag.String(),
+					Version: state.Prev.Tag.Version.String(),
 				},
 				CommitId:      state.Prev.CommitId.String(),
-				Description:   *state.Prev.Description,
-				CommitComment: *state.Prev.CommitComment,
+				Description:   description,
+				CommitComment: commitComment,
 			}
 		}
+		m.Services = append(m.Services, service)
 	}
 	return m
 }
