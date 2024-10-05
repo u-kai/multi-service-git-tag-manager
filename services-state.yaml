@@ -1,9 +1,9 @@
 services:
-- name: test
+- name: msgtm
   latest:
     tag:
-      version: v0.0.1
-    commitId: 4921d5108dd9901a569b1145968d45070b774d5d
+      version: v0.1.0
+    commitId: 179dee081ca866bea2c7e2342f6cae76f9e882bb
     description: null
     commitComment: null
   prev: null
