@@ -149,7 +149,7 @@ func addSyncAll(
 		sync, _ := cmd.Flags().GetBool("sync")
 		fileName, _ := cmd.Flags().GetString("state-file")
 		if sync {
-			file, err := os.OpenFile(fileName, os.O_WRONLY, os.ModePerm)
+			file, err := os.OpenFile(fileName, os.O_RDWR|os.O_TRUNC, os.ModePerm)
 			if err != nil {
 				fmt.Printf("Failed to open file: %s\n", err.Error())
 				return

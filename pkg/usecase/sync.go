@@ -1,19 +1,21 @@
 package usecase
 
 import (
-	"fmt"
 	"msgtm/pkg/domain"
 )
 
 func SyncAllServiceTagState(state *domain.WritedState, list ListTags, finder CommitFinder) (*domain.WritedState, error) {
-	tags, err := list.Execute(ListTagsQuery{})
+	tags, err := list.Execute(ListTagsQuery{
+		Filter: func(_ *domain.ServiceName) bool {
+			return true
+		}})
 	if err != nil {
 		return nil, err
 	}
 	serviceTags := domain.FilterServiceTags(tags)
 	sorts := domain.SortsServiceTags(serviceTags)
 	for serviceName, tags := range sorts {
-		latest := tags[0]
+		latest := tags[len(tags)-1]
 		gitTagLatest := latest.ToGitTag()
 		query := FindCommitQuery{
 			Tag: &gitTagLatest,
@@ -26,10 +28,22 @@ func SyncAllServiceTagState(state *domain.WritedState, list ListTags, finder Com
 			Tag:      latest,
 			CommitId: commitId,
 		}
-		fmt.Printf("serviceName: %v\n", serviceName)
-		fmt.Printf("info: %v\n", info)
-		state.Update(serviceName, &info)
-		fmt.Printf("state: %v\n", state)
+		var prev *domain.ServiceTagInfo = nil
+		if len(tags) > 1 {
+			tag := tags[len(tags)-2]
+			gitTag := tag.ToGitTag()
+			commitId, err := finder.Execute(FindCommitQuery{
+				Tag: &gitTag,
+			})
+			if err != nil {
+				return nil, err
+			}
+			prev = &domain.ServiceTagInfo{
+				Tag:      tag,
+				CommitId: commitId,
+			}
+		}
+		state.Update(serviceName, &info, prev)
 	}
 	return state, nil
 }

@@ -10,6 +10,9 @@ func VersionUpAllServiceTags(
 	excludeServiceNames ...*domain.ServiceName,
 ) error {
 	f := func(s *domain.ServiceName) bool {
+		if len(excludeServiceNames) == 0 {
+			return true
+		}
 		for _, name := range excludeServiceNames {
 			if *name == *s {
 				return false

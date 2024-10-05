@@ -55,21 +55,25 @@ const (
 	YAML
 )
 
-func (s *WritedState) Update(serviceName ServiceName, tag *ServiceTagInfo) {
+func (s *WritedState) Update(serviceName ServiceName, latest *ServiceTagInfo, prev *ServiceTagInfo) {
 	// len 0はfor文が実行されないため
 	if len(s.ServiceTagStates) == 0 {
 		s.ServiceTagStates = append(s.ServiceTagStates, InitServiceTagState(&serviceName))
-		s.ServiceTagStates[0].UpdateLatest(tag)
+		s.ServiceTagStates[0].UpdateLatest(latest)
+		s.ServiceTagStates[0].Prev = prev
 		return
 	}
 	for i, state := range s.ServiceTagStates {
 		if *state.ServiceName == serviceName {
-			state.UpdateLatest(tag)
+			state.UpdateLatest(latest)
+			state.Prev = prev
 			return
 		}
+		// 最後まで見つからなかった場合は新規追加
 		if i == len(s.ServiceTagStates)-1 {
 			newS := InitServiceTagState(&serviceName)
-			newS.UpdateLatest(tag)
+			newS.UpdateLatest(latest)
+			newS.Prev = prev
 			s.ServiceTagStates = append(s.ServiceTagStates, newS)
 		}
 	}
