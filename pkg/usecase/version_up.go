@@ -26,6 +26,9 @@ func VersionUpAllServiceTags(
 	if err != nil {
 		return err
 	}
+	if tags == nil {
+		return nil
+	}
 
 	updates := versionUpService(tags)
 

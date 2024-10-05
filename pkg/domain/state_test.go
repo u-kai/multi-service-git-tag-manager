@@ -260,6 +260,7 @@ services:
 	}
 }
 
+// TODO:fix prevがnilでも成功するのは本来おかしい
 func TestUpdate(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -355,7 +356,7 @@ func TestUpdate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for _, info := range tt.updateInfos {
-				tt.state.Update(info.Tag.Service, &info)
+				tt.state.Update(info.Tag.Service, &info, nil)
 			}
 			if !reflect.DeepEqual(tt.state, &tt.want) {
 				t.Errorf("got: %v, want: %v", tt.state, tt.want)
